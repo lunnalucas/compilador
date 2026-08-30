@@ -2,18 +2,19 @@
 
 ## Integrantes
 
-| Nombre | Legajo | Rol |
-|--------|--------|-----|
-|        |        |     |
+| Nombre     | Legajo | Rol |
+|------------|--------|-----|
+| Lucas Luna |        |     |
+| Rosa Ortiz |        |     |
 
 ## TP asignado
 
-_(número de trabajo práctico / variante asignada por la cátedra)_
+_Trabajo Práctico B (Convivencia de enteros y reales con compatibilidad total y memoria estática)_
 
 ## Lenguaje
 
 - **Lenguaje fuente:** _(el lenguaje que compila este compilador)_
-- **Lenguaje de implementación:** _(Java / C / etc.)_
+- **Lenguaje de implementación:** _C_
 - **Arquitectura destino:** _(assembler generado)_
 
 ## Cómo compilar
