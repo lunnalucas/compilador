@@ -262,10 +262,32 @@ inicio() {
 
     imprimir(acum);
 }
-```
-
 Salida esperada: `21`
 
+```
+```
+real calcularSuma(entero a, real b){
+  retornar (a+b);
+}
+
+inicio(){
+  entero x = 0;
+  real y = 2.5;
+  entero resultado, i;
+
+  resultado = calcularSuma(x+y);
+  imprimir ("Resultado con Redondeo: ", resultado);
+  para (i=6 ; i>=0 && x>5 ; i-=2){
+    si(i == 0){
+      imprimir("Llegamos a cero");
+    }
+    sino{
+      imprimir("Valor actual de i: ", i);
+    }
+  }
+}
+
+```
 ---
 
 ## 10. Fuera de alcance
