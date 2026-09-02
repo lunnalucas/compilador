@@ -268,14 +268,16 @@ inicio(){
 
   resultado = calcularSuma(x,y);
   entero resultado;
-  imprimir ("Resultado con Redondeo: ", resultado);
+  imprimir ("Resultado con Redondeo: ");
+  imprimir (resultado);
 
   para (i=6 ; i>=0 && x>5 ; i--){
     si(i == 0){
       imprimir("Llegamos a cero");
     }
     sino{
-      imprimir("Valor actual de i: ", i);
+      imprimir("Valor actual de i: ");
+      imprimir(i);
     }
   }
 }
