@@ -74,7 +74,7 @@ estados propios del autómata.
 | 124 | `IGUAL` | `==` |
 | 125 | `ASIG_DIVISION` | `/=` |
 | 126 | `ASIG_MULT` | `*=` |
-| — | Literales | `+ - * / ( ) { } ; , !` se devuelven como su propio valor ASCII |
+| — | Literales | `+ - * / ( ) { } ; , !` se devuelven como su propio valor |
 
 ---
 
