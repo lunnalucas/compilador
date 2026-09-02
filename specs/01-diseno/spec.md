@@ -36,7 +36,7 @@
 
 ## 3. Palabras reservadas
 
-`real` · `entero` · `si` · `sino` · `mientras` · `para` · `imprimir` · `retornar`
+`real` · `entero` · `si` · `sino` · `para` · `imprimir` · `retornar`
 
 Se reconocen como identificadores y se resuelven por búsqueda en tabla, no con
 estados propios del autómata.
