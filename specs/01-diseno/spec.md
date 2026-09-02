@@ -264,9 +264,9 @@ real calcularSuma(entero a, real b){
 inicio(){
   entero x = 10;
   real y = 2.5;
-  entero, i;
+  entero i;
 
-  resultado = calcularSuma(x+y);
+  resultado = calcularSuma(x,y);
   entero resultado;
   imprimir ("Resultado con Redondeo: ", resultado);
 
