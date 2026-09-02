@@ -12,11 +12,11 @@
 | D1 | Tipo de datos | Dos tipos: Entero con signo y Real con signo |
 | D2 | Rango | Entero: 32 bits y Real: 64 bits  |
 | D3 | Declaración | Obligatoria con tipo; no se exige orden entre declaración y primer uso. |
-| D4 | Alcance y Gestión de memoria | Memoria estática: variables globales, locales y parámetros residen en posiciones fijas asignadas en tiempo de compilación. No existe stack dinámico de ejecución |
+| D4 | Alcance y Gestión de memoria | Memoria estática: variables globales, locales y parámetros residen en posiciones fijas asignadas en tiempo de compilación. |
 | D5 | Sensibilidad a mayúsculas | Sí. `Total` y `total` son variables distintas |
 | D6 | Longitud máxima de identificador | 20 caracteres; más largo se trunca con advertencia |
 | D7 | Comentarios | De bloque, delimitados por `/*` y `*/` |
-| D8 | Compatibilidad de tipos | Total entre enteros y reales, con conversiones implícitas automáticas visibles en tercetos |
+| D8 | Compatibilidad de tipos | Total entre enteros y reales, con conversiones implícitas automáticas visibles en tercetos. |
 | D9 | División por cero | Error en ejecución, con mensaje y cancelación |
 | D10 | Plataforma destino | Por definir |
 
@@ -28,7 +28,7 @@
 |---|---|
 | `L` | `a`–`z`, `A`–`Z` |
 | `D` | `0`–`9` |
-| `SIM` | `+ - * / ( ) { } ; , = < > !` |
+| `SIM` | `+ - * / ( ) { } ; , = < > ! .` |
 | `BL` | espacio, tabulador, salto de línea |
 | `OTRO` | cualquier otro carácter → error léxico |
 
@@ -68,13 +68,9 @@ estados propios del autómata.
 | 118 | `AND` | `&&` |
 | 119 | `OR` | `\|\|` |
 | 120 | `INCREMENTO` | `++` |
-| 121 | `ASIG_SUMA` | `+=` |
-| 122 | `DECREMENTO` | `--` |
-| 123 | `ASIG_RESTA` | `-=` |
-| 124 | `IGUAL` | `==` |
-| 125 | `ASIG_DIVISION` | `/=` |
-| 126 | `ASIG_MULT` | `*=` |
-| — | Literales | `+ - * / ( ) { } ; , !` se devuelven como su propio valor |
+| 121 | `DECREMENTO` | `--` |
+| 122 | `IGUAL` | `==` |
+| — | Literales | `+ - * / ( ) { } ; , ! .` se devuelven como su propio valor |
 
 ---
 
@@ -121,31 +117,26 @@ parámetros y sin valor de retorno.
                       | <seleccion>
                       | <iteracion>
                       | <salida>
-                      | <retorno>
                       | <invocacion> ';'
 
 <declaracion>       ::= <tipo> <lista_ids> ';'
+                      | <tipo> ID ASIG <expresion> ';'
 
 <lista_ids>         ::= <lista_ids> ',' ID
                       | ID
 
-<asignacion>        ::= ID <op_asig> <expresion> ';'
-
-<op_asig>           ::= ASIG
-                      | ASIG_SUMA
-                      | ASIG_RESTA
-                      | ASIG_MULT
-                      | ASIG_DIVISION
+<asignacion>        ::= ID ASIG <expresion> ';'
 
 <seleccion>         ::= SI '(' <condicional> ')' <bloque>
                       | SI '(' <condicional> ')' <bloque> SINO <bloque>
 
-<iteracion>         ::= PARA '(' <asignacion_para> ';' <condicion> ';' ID DECREMENTO ')' <bloque>
+<iteracion>         ::= PARA '(' <asignacion_para> ';' <condicional> ';' ID DECREMENTO ')' <bloque>
 
 <asignacion_para>   ::= ID ASIG CTE_E
                       | ID
 
 <salida>            ::= IMPRIMIR '(' <expresion> ')' ';'
+                      | IMPRIMIR '(' CADENA ')' ';'
 
 <retorno>           ::= RETORNAR <expresion> ';'
                       | RETORNAR ';'
@@ -158,7 +149,7 @@ parámetros y sin valor de retorno.
 
 <factor_logico>     ::= <condicion>
                       | '(' <condicional> ')'
-                      | '!' <factor_logico>
+                      | '!' ID
 
 <condicion>         ::= <expresion> <comparador> <expresion>
 
@@ -182,7 +173,6 @@ parámetros y sin valor de retorno.
                       | CTE_R
                       | <invocacion>
                       | '(' <expresion> ')'
-                      | '-' <factor>
 
 <invocacion>        ::= ID '(' <argumentos> ')'
 
@@ -210,7 +200,7 @@ parámetros y sin valor de retorno.
 | R9 | Las funciones admiten hasta 2 parámetros pasados por valor. Los parámetros y variables locales se alojan en direcciones estáticas fijas |
 | R10 | La recursión directa está prohibida y debe ser reportada como error semántico |
 | R11 | Las constantes numéricas fuera de los rangos soportados generan error semántico |
-| R12 | El programa principal es una función con nombre reservado `inicio` que indica el punto de inicio de la ejecución |
+| R12 | El programa principal es una función con nombre reservado `inicio` que indica el inicio de la ejecución |
 
 ---
 
@@ -225,12 +215,12 @@ parámetros y sin valor de retorno.
 | E5 | Error de sintaxis / Sentencia o estructura mal formada | Sintáctico |
 | E6 | Variable no declarada al finalizar el análisis (R1) | Semántico (sobre tabla de símbolos) |
 | E7 | Variable redeclarada en el mismo alcance (R2) | Semántico (sobre tabla de símbolos) |
-| E8 | Contador de bucle `para` no entero / uso de variable real en el control (R8) | Semántico |
+| E8 | Contador de bucle `para` real (R8) | Semántico |
 | E9 | Función con más de 2 parámetros declarados (R9) | Sintáctico / Semántico |
-| E10 | Llamada recursiva directa detectada (R10) | Semántico |
+| E10 | Llamada recursiva (R10) | Semántico |
 | E11 | Constante numérica fuera de rango (R11) | Léxico / Semántico |
 | E12 | Cantidad o tipo incompatible de argumentos en invocación de función | Semántico |
-| E13 | División por cero en tiempo de ejecución (D11) | Ejecución (código emitido por GCA) |
+| E13 | División por cero en tiempo de ejecución (D11) | Ejecución |
 
 Ninguno de E1 a E12 aborta la compilación: se registran y se sigue leyendo.
 
@@ -262,9 +252,10 @@ inicio() {
 
     imprimir(acum);
 }
+```
+
 Salida esperada: `21`
 
-```
 ```
 real calcularSuma(entero a, real b){
   retornar (a+b);
@@ -296,8 +287,7 @@ inicio(){
 
 Se deja constancia de lo que el lenguaje **no** incluye:
 
-- Tipos de datos adicionales (caracteres `char`, cadenas `string` mutables, arreglos, estructuras o tipos booleanos nativos como variables)
-- Modos de pasaje de parámetros por referencia o más de 2 parámetros por función
+- Tipos de datos adicionales (caracteres `char`, arreglos, estructuras o tipos booleanos)
 - Recursión
-- Estructuras en memoria dinámica (pila dinámica de ejecución, heap, punteros o asignación dinámica `malloc`/`free`)
+- Estructuras en memoria dinámica
 - Estructuras de control iterativas distintas a `para` (no hay `while` o `do while`)
