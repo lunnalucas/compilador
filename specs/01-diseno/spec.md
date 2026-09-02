@@ -271,13 +271,15 @@ real calcularSuma(entero a, real b){
 }
 
 inicio(){
-  entero x = 0;
+  entero x = 10;
   real y = 2.5;
-  entero resultado, i;
+  entero, i;
 
   resultado = calcularSuma(x+y);
+  entero resultado;
   imprimir ("Resultado con Redondeo: ", resultado);
-  para (i=6 ; i>=0 && x>5 ; i-=2){
+
+  para (i=6 ; i>=0 && x>5 ; i--){
     si(i == 0){
       imprimir("Llegamos a cero");
     }
