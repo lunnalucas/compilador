@@ -9,16 +9,18 @@
 
 | #  | Decisión | Valor |
 |----|---|---|
-| D1 | Tipo de datos | Dos tipos: Entero con signo y Real con signo |
+| D1 | Tipo de datos | dos tipos: Entero y Real |
 | D2 | Rango | Entero: 32 bits y Real: 64 bits  |
-| D3 | Declaración | Obligatoria con tipo; no se exige orden entre declaración y primer uso. |
-| D4 | Alcance y Gestión de memoria | Memoria estática: variables globales, locales y parámetros residen en posiciones fijas asignadas en tiempo de compilación. |
-| D5 | Sensibilidad a mayúsculas | Sí. `Total` y `total` son variables distintas |
-| D6 | Longitud máxima de identificador | 20 caracteres; más largo se trunca con advertencia |
-| D7 | Comentarios | De bloque, delimitados por `/*` y `*/` |
-| D8 | Compatibilidad de tipos | Total entre enteros y reales, con conversiones implícitas automáticas visibles en tercetos. |
-| D9 | División por cero | Error en ejecución, con mensaje y cancelación |
-| D10 | Plataforma destino | Por definir |
+| D3 | Declaración | todas las variables deben ser declaradas con su tipo. |
+| D4 | Alcance y Gestión de memoria | variables globales, locales y parámetros en memoria estatica. |
+| D5 | Sensibilidad a mayúsculas | `Total` y `total` son variables distintas |
+| D6 | Longitud máxima de identificador | 20 caracteres; más largo se trunca |
+| D7 | Comentarios | de bloque, delimitados por `/*` y `*/` |
+| D8 | Compatibilidad de tipos | compatibilidad entre enteros y reales. |
+| D9 | Bucle for | el contador debe ser entero y decrementarse, no se permite el incremento. |
+| D10 | Funciones | se admiten como máximo 2 parametros |
+| D10 | División por cero | Error en ejecución |
+| D11 | Plataforma destino | Por definir |
 
 ---
 
@@ -70,7 +72,18 @@ estados propios del autómata.
 | 120 | `INCREMENTO` | `++` |
 | 121 | `DECREMENTO` | `--` |
 | 122 | `IGUAL` | `==` |
-| — | Literales | `+ - * / ( ) { } ; , ! .` se devuelven como su propio valor |
+| 123 | `SUMA` | `+` |
+| 124 | `RESTA` | `-` |
+| 125 | `PRODUCTO` | `*` |
+| 126 | `DIVISION` | `/` |
+| 127 | `PAR_ABRE` | `(` |
+| 128 | `PAR_CIERRA` | `)` |
+| 129 | `LLAVE_ABRE` | `{` |
+| 130 | `LLAVE_CIERRA` | `}` |
+| 131 | `P_COMA` | `;` |
+| 132 | `COMA` | `,` |
+| 133 | `NEGAR` | `!` |
+| 134 | `PUNTO` | `.` |
 
 ---
 
@@ -189,18 +202,16 @@ parámetros y sin valor de retorno.
 
 | Regla | Definición |
 |---|---|
-| R1 | Toda variable debe ser declarada explícitamente con su tipo (`entero` o `real`). Puede usarse antes o después de su declaración, pero si al finalizar el análisis no fue declarada, es error semántico |
+| R1 | Las variables pueden usarse antes o después de su declaración, si al finalizar el análisis no fue declarada, es error semántico |
 | R2 | Redeclarar un identificador dentro del mismo alcance es error semántico |
 | R3 | Inicialización por defecto: variables enteras se inicializan en `0` y reales en `0.0` |
-| R4 | En operaciones aritméticas entre `entero` y `real`, el entero se promueve implícitamente a real y el resultado de la operación es real |
-| R5 | En asignación de `real` a variable de tipo `entero`, se realiza truncamiento implícito descartando la parte fraccionaria |
-| R6 | En asignación de `entero` a variable de tipo `real`, se realiza promoción implícita exacta a punto flotante |
-| R7 | En comparaciones entre `entero` y `real`, el operando entero se promueve implícitamente a real |
-| R8 | El bucle `para` opera de forma decreciente. Su contador debe ser obligatoriamente de tipo `entero`, el uso de un `real` como contador es error semántico |
-| R9 | Las funciones admiten hasta 2 parámetros pasados por valor. Los parámetros y variables locales se alojan en direcciones estáticas fijas |
-| R10 | La recursión directa está prohibida y debe ser reportada como error semántico |
-| R11 | Las constantes numéricas fuera de los rangos soportados generan error semántico |
-| R12 | El programa principal es una función con nombre reservado `inicio` que indica el inicio de la ejecución |
+| R4 | En operaciones aritméticas entre `entero` y `real`, el entero se promueve a real y el resultado de la operación es real |
+| R5 | En asignación de `real` a variable de tipo `entero`, se realiza truncamiento descartando la parte decimal |
+| R6 | En asignación de `entero` a variable de tipo `real`, se realiza promoción exacta a decimal |
+| R7 | En comparaciones entre `entero` y `real`, el entero se promueve a real |
+| R8 | El uso de un `real` como contador en el bucle `para` es error semántico |
+| R9 | Debido al almacenamiento en memoria estática la recursión está prohibida, su uso es un error semántico |
+| R10 | Las constantes númericas deben estar dentro del rango soportado por el lenguaje |
 
 ---
 
@@ -212,17 +223,15 @@ parámetros y sin valor de retorno.
 | E2 | Constante numérica mal formada (ej. `12.3.4`, `10abc`) | Léxico |
 | E3 | Comentario de bloque sin cerrar al fin de archivo (`/* ...`) | Léxico |
 | E4 | Identificador excede longitud máxima de 20 caracteres (advertencia y truncamiento) | Léxico |
-| E5 | Error de sintaxis / Sentencia o estructura mal formada | Sintáctico |
-| E6 | Variable no declarada al finalizar el análisis (R1) | Semántico (sobre tabla de símbolos) |
-| E7 | Variable redeclarada en el mismo alcance (R2) | Semántico (sobre tabla de símbolos) |
-| E8 | Contador de bucle `para` real (R8) | Semántico |
-| E9 | Función con más de 2 parámetros declarados (R9) | Sintáctico / Semántico |
-| E10 | Llamada recursiva (R10) | Semántico |
-| E11 | Constante numérica fuera de rango (R11) | Léxico / Semántico |
+| E5 | Sentencia o estructura mal formada | Sintáctico |
+| E6 | Variable no declarada al finalizar el análisis | Semántico |
+| E7 | Variable redeclarada en el mismo alcance | Semántico |
+| E8 | Contador de bucle `para` real | Semántico |
+| E9 | Función con más de 2 parámetros declarados | Sintáctico / Semántico |
+| E10 | Llamada recursiva | Semántico |
+| E11 | Constante numérica fuera de rango | Léxico / Semántico |
 | E12 | Cantidad o tipo incompatible de argumentos en invocación de función | Semántico |
-| E13 | División por cero en tiempo de ejecución (D11) | Ejecución |
-
-Ninguno de E1 a E12 aborta la compilación: se registran y se sigue leyendo.
+| E13 | División por cero en tiempo de ejecución | Ejecución |
 
 ---
 
@@ -234,17 +243,17 @@ real calcular(real base, entero factor) {
 }
 
 inicio() {
-    res = calcular(10.5, 2);
-    acum = 0;
-
     entero i, acum;
     real res;
 
+    res = calcular(10.5, 2);
+    acum = 0;
+
     para (i = 3; i > 0; i--) {
         si ((i >= 2) && (res > 10.0)) {
-            acum += i;
+            acum = acum + i;
         } sino {
-            acum -= 1;
+            acum = acum - 1;
         }
     }
 
@@ -253,8 +262,7 @@ inicio() {
     imprimir(acum);
 }
 ```
-
-Salida esperada: `21`
+---
 
 ```
 real calcularSuma(entero a, real b){
@@ -264,10 +272,9 @@ real calcularSuma(entero a, real b){
 inicio(){
   entero x = 10;
   real y = 2.5;
-  entero i;
+  entero i, resultado;
 
   resultado = calcularSuma(x,y);
-  entero resultado;
   imprimir ("Resultado con Redondeo: ");
   imprimir (resultado);
 
@@ -289,7 +296,6 @@ inicio(){
 
 Se deja constancia de lo que el lenguaje **no** incluye:
 
-- Tipos de datos adicionales (caracteres `char`, arreglos, estructuras o tipos booleanos)
+- Tipos de datos adicionales (caracter, cadena de caracteres, arreglos, booleanos)
 - Recursión
-- Estructuras en memoria dinámica
 - Estructuras de control iterativas distintas a `para` (no hay `while` o `do while`)
