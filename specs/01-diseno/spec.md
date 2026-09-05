@@ -12,7 +12,7 @@
 | D1 | Tipo de datos | dos tipos: Entero y Real |
 | D2 | Rango | Entero: 32 bits y Real: 64 bits  |
 | D3 | Declaración | todas las variables deben ser declaradas con su tipo. |
-| D4 | Alcance y Gestión de memoria | variables globales, locales y parámetros en memoria estatica. |
+| D4 | Alcance y Gestión de memoria | variables globales y locales en memoria estatica. |
 | D5 | Sensibilidad a mayúsculas | `Total` y `total` son variables distintas |
 | D6 | Longitud máxima de identificador | 20 caracteres; más largo se trunca |
 | D7 | Comentarios | de bloque, delimitados por `/*` y `*/` |
@@ -30,7 +30,7 @@
 |---|---|
 | `L` | `a`–`z`, `A`–`Z` |
 | `D` | `0`–`9` |
-| `SIM` | `+ - * / ( ) { } ; , = < > ! .` |
+| `SIM` | `+ - * / ( ) { } ; , = < > ! . & \| "` |
 | `BL` | espacio, tabulador, salto de línea |
 | `OTRO` | cualquier otro carácter → error léxico |
 
@@ -38,7 +38,7 @@
 
 ## 3. Palabras reservadas
 
-`real` · `entero` · `si` · `sino` · `para` · `imprimir` · `retornar`
+`real` · `entero` · `si` · `sino` · `para` · `imprimir` · `retornar` · `inicio`
 
 Se reconocen como identificadores y se resuelven por búsqueda en tabla, no con
 estados propios del autómata.
@@ -67,11 +67,8 @@ estados propios del autómata.
 | 115 | `MAYOR` | `>` |
 | 116 | `MENOR_IGUAL` | `<=` |
 | 117 | `MAYOR_IGUAL` | `>=` |
-| 118 | `AND` | `&&` |
-| 119 | `OR` | `\|\|` |
-| 120 | `INCREMENTO` | `++` |
-| 121 | `DECREMENTO` | `--` |
-| 122 | `IGUAL` | `==` |
+| 118 | `AND` | `&` |
+| 119 | `OR` | `\|` |
 | 123 | `SUMA` | `+` |
 | 124 | `RESTA` | `-` |
 | 125 | `PRODUCTO` | `*` |
@@ -84,6 +81,7 @@ estados propios del autómata.
 | 132 | `COMA` | `,` |
 | 133 | `NEGAR` | `!` |
 | 134 | `PUNTO` | `.` |
+| 134 | `COMILLA` | `"` |
 
 ---
 
@@ -91,7 +89,7 @@ estados propios del autómata.
 
 Un programa del lenguaje comienza con el nombre reservado `inicio`, sin
 parámetros y sin valor de retorno.
-<br> Pueden existir otras funciones.
+- Pueden existir otras funciones.
 
 ---
 
@@ -227,7 +225,7 @@ parámetros y sin valor de retorno.
 | E6 | Variable no declarada al finalizar el análisis | Semántico |
 | E7 | Variable redeclarada en el mismo alcance | Semántico |
 | E8 | Contador de bucle `para` real | Semántico |
-| E9 | Función con más de 2 parámetros declarados | Sintáctico / Semántico |
+| E9 | Función con más de 2 parámetros | Sintáctico / Semántico |
 | E10 | Llamada recursiva | Semántico |
 | E11 | Constante numérica fuera de rango | Léxico / Semántico |
 | E12 | Cantidad o tipo incompatible de argumentos en invocación de función | Semántico |
