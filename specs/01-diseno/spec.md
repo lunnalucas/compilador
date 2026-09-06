@@ -17,10 +17,12 @@
 | D6 | Longitud máxima de identificador | 20 caracteres; más largo se trunca |
 | D7 | Comentarios | de bloque, delimitados por `/*` y `*/` |
 | D8 | Compatibilidad de tipos | compatibilidad entre enteros y reales. |
-| D9 | Bucle for | el contador debe ser entero y decrementarse, no se permite el incremento. |
-| D10 | Funciones | se admiten como máximo 2 parametros |
-| D10 | División por cero | Error en ejecución |
-| D11 | Plataforma destino | Por definir |
+| D9 | Bucle for | el campo de control debe ser una declaracion de variable entera o una asignacion entera, el campo de actualización debe contener una variable entera positiva que indica el valor que se decrementara en cada iteración. |
+| D10 | Funciones | se admiten como máximo 2 parámetros |
+| D11 | Pasaje de parámetros | copia-valor |
+| D12 | Imprimir | cada linea imprime una cadena de caracteres, una expresión o una invocación |
+| D13 | División por cero | Error en ejecución |
+| D14 | Plataforma destino | Por definir |
 
 ---
 
@@ -69,19 +71,18 @@ estados propios del autómata.
 | 117 | `MAYOR_IGUAL` | `>=` |
 | 118 | `AND` | `&` |
 | 119 | `OR` | `\|` |
-| 123 | `SUMA` | `+` |
-| 124 | `RESTA` | `-` |
-| 125 | `PRODUCTO` | `*` |
-| 126 | `DIVISION` | `/` |
-| 127 | `PAR_ABRE` | `(` |
-| 128 | `PAR_CIERRA` | `)` |
-| 129 | `LLAVE_ABRE` | `{` |
-| 130 | `LLAVE_CIERRA` | `}` |
-| 131 | `P_COMA` | `;` |
-| 132 | `COMA` | `,` |
-| 133 | `NEGAR` | `!` |
-| 134 | `PUNTO` | `.` |
-| 134 | `COMILLA` | `"` |
+| 120 | `SUMA` | `+` |
+| 121 | `RESTA` | `-` |
+| 122 | `PRODUCTO` | `*` |
+| 123 | `DIVISION` | `/` |
+| 124 | `PAR_ABRE` | `(` |
+| 125 | `PAR_CIERRA` | `)` |
+| 126 | `LLAVE_ABRE` | `{` |
+| 127 | `LLAVE_CIERRA` | `}` |
+| 128 | `P_COMA` | `;` |
+| 129 | `COMA` | `,` |
+| 130 | `PUNTO` | `.` |
+| 131 | `COMILLA` | `"` |
 
 ---
 
@@ -200,16 +201,11 @@ parámetros y sin valor de retorno.
 
 | Regla | Definición |
 |---|---|
-| R1 | Las variables pueden usarse antes o después de su declaración, si al finalizar el análisis no fue declarada, es error semántico |
-| R2 | Redeclarar un identificador dentro del mismo alcance es error semántico |
-| R3 | Inicialización por defecto: variables enteras se inicializan en `0` y reales en `0.0` |
-| R4 | En operaciones aritméticas entre `entero` y `real`, el entero se promueve a real y el resultado de la operación es real |
-| R5 | En asignación de `real` a variable de tipo `entero`, se realiza truncamiento descartando la parte decimal |
-| R6 | En asignación de `entero` a variable de tipo `real`, se realiza promoción exacta a decimal |
-| R7 | En comparaciones entre `entero` y `real`, el entero se promueve a real |
-| R8 | El uso de un `real` como contador en el bucle `para` es error semántico |
-| R9 | Debido al almacenamiento en memoria estática la recursión está prohibida, su uso es un error semántico |
-| R10 | Las constantes númericas deben estar dentro del rango soportado por el lenguaje |
+| R1 | Inicialización por defecto: variables enteras se inicializan en `0` y reales en `0.0` |
+| R2 | En operaciones aritméticas entre `entero` y `real`, el entero se promueve a real y el resultado de la operación es real |
+| R3 | En asignación de `real` a variable de tipo `entero`, se realiza truncamiento descartando la parte decimal |
+| R4 | En asignación de `entero` a variable de tipo `real`, se realiza promoción exacta a decimal |
+| R5 | En comparaciones entre `entero` y `real`, el entero se promueve a real |
 
 ---
 
@@ -229,7 +225,10 @@ parámetros y sin valor de retorno.
 | E10 | Llamada recursiva | Semántico |
 | E11 | Constante numérica fuera de rango | Léxico / Semántico |
 | E12 | Cantidad o tipo incompatible de argumentos en invocación de función | Semántico |
-| E13 | División por cero en tiempo de ejecución | Ejecución |
+| E13 | Variable negativa en el campo de actualizacion del bucle `para` | Semántico |
+| E14 | Variable `real` en el campo de actualizacion del bucle `para` | Semántico |
+| E15 | Constante `real` como variable de control en el bucle `para` | Semántico |
+| E16 | División por cero en tiempo de ejecución | Ejecución |
 
 ---
 
