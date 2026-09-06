@@ -96,103 +96,106 @@ parámetros y sin valor de retorno.
 
 ## 6. Gramática
 ```
-<programa>          ::= <unidades>
+<programa>            ::= <unidades> <principal>
+                        | <principal>
 
-<unidades>          ::= <unidades> <unidad>
-                      | <unidad>
+<principal>           ::= INICIO <bloque_i>
 
-<unidad>            ::= <dec_funcion>
-                      | <principal>
+<unidades>            ::= <unidades> <unidad>
+                        | <unidad>
 
-<principal>         ::= INICIO '(' ')' <bloque>
+<unidad>              ::= <tipo> ID '(' <parametros> ')' <bloque>
 
-<dec_funcion>       ::= <tipo> ID '(' <parametros> ')' <cuerpo_funcion>
+<parametros>          ::= <tipo> ID
+                        | <tipo> ID ',' <tipo> ID
+                        | lambda
 
-<cuerpo_funcion>    ::= '{' <sentencias> <retorno> '}'
+<bloque>              ::= '{' <sentencias> '}'
 
-<parametros>        ::= <lista_parametros>
-                      | lambda
+<bloque_i>            ::= '{' <sentencias_i> '}'
 
-<lista_parametros>  ::= <tipo> ID ',' <tipo> ID
-                      | <tipo> ID
+<sentencias_i>        ::= <sentencias_i> <sentencia_i>
+                        | <sentencia_i>
 
-<tipo>              ::= ENTERO
-                      | REAL
+<sentencia_i>         ::= <declaracion>
+                        | <asignacion>
+                        | <seleccion>
+                        | <bucle>
+                        | <salida>
 
-<bloque>            ::= '{' <sentencias> '}'
+<sentencias>          ::= <sentencias> <sentencia>
+                        | <sentencia>
 
-<sentencias>        ::= <sentencias> <sentencia>
-                      | <sentencia>
+<sentencia>           ::= <declaracion>
+                        | <asignacion>
+                        | <seleccion>
+                        | <bucle>
+                        | <salida>
+                        | <retorno>
 
-<sentencia>         ::= <declaracion>
-                      | <asignacion>
-                      | <seleccion>
-                      | <iteracion>
-                      | <salida>
-                      | <invocacion> ';'
+<declaracion>         ::= <tipo> ID '=' <expresion> ';'
+                        | <tipo> <ids> ';'
+                        | <tipo> ID ';'
 
-<declaracion>       ::= <tipo> <lista_ids> ';'
-                      | <tipo> ID ASIG <expresion> ';'
+<ids>                 ::= <ids> ',' ID
+                        | ID
 
-<lista_ids>         ::= <lista_ids> ',' ID
-                      | ID
+<asignacion>          ::= ID '=' <expresion> ';'
+                        | ID '=' <invocacion> ';'
 
-<asignacion>        ::= ID ASIG <expresion> ';'
+<invocacion>          ::= ID '(' <argumentos> ')'
 
-<seleccion>         ::= SI '(' <condicional> ')' <bloque>
-                      | SI '(' <condicional> ')' <bloque> SINO <bloque>
+<seleccion>           ::= SI '(' <condicional> ')' <bloque> 
+                        | SI '(' <condicional> ')' <bloque> SINO <bloque>
 
-<iteracion>         ::= PARA '(' <asignacion_para> ';' <condicional> ';' ID DECREMENTO ')' <bloque>
+<condicional>         ::= <condicional> OR <t_condicional>
+                        | <t_condicional>
 
-<asignacion_para>   ::= ID ASIG CTE_E
-                      | ID
+<t_condicional>       ::= <t_condicional> AND <f_condicional>
+                        | <f_condicional>
 
-<salida>            ::= IMPRIMIR '(' <expresion> ')' ';'
-                      | IMPRIMIR '(' CADENA ')' ';'
+<f_condicional>       ::= <condicion>
+                        | '(' <condicional> ')'
 
-<retorno>           ::= RETORNAR <expresion> ';'
-                      | RETORNAR ';'
+<condicion>           ::= <expresion> <comparador> <expresion>
 
-<condicional>       ::= <condicional> OR <termino_logico>
-                      | <termino_logico>
+<comparador>          ::= IGUAL
+                        | DISTINTO
+                        | MENOR
+                        | MAYOR
+                        | MENOR_IGUAL
+                        | MAYOR_IGUAL
 
-<termino_logico>    ::= <termino_logico> AND <factor_logico>
-                      | <factor_logico>
+<bucle>               ::= PARA '(' <control> ';' <condicional> ';' CTE_E ')' <bloque>
 
-<factor_logico>     ::= <condicion>
-                      | '(' <condicional> ')'
-                      | '!' ID
+<control>             ::= ENTERO ID '=' CTE_E
+                        | ID '=' CTE_E
 
-<condicion>         ::= <expresion> <comparador> <expresion>
+<salida>              ::= IMPRIMIR '(' CADENA ')' ';'
+                        | IMPRIMIR '(' <expresion> ')' ';'
+                        | IMPRIMIR '(' <invocacion> ')' ';'
 
-<comparador>        ::= IGUAL 
-                      | DISTINTO 
-                      | MENOR 
-                      | MAYOR 
-                      | MENOR_IGUAL 
-                      | MAYOR_IGUAL
+<retorno>             ::= RETORNAR <expresion> ';'
 
-<expresion>         ::= <expresion> '+' <termino>
-                      | <expresion> '-' <termino>
-                      | <termino>
+<argumentos>          ::= <expresion> ',' <expresion>
+                        | <expresion>
+                        | lambda
 
-<termino>           ::= <termino> '*' <factor>
-                      | <termino> '/' <factor>
-                      | <factor>
+<expresion>           ::= <expresion> '+' <termino>
+                        | <expresion> '-' <termino>
+                        | <termino>
 
-<factor>            ::= ID
-                      | CTE_E
-                      | CTE_R
-                      | <invocacion>
-                      | '(' <expresion> ')'
+<termino>             ::= <termino> '*' <factor>
+                        | <termino> '/' <factor>
+                        | <factor>
 
-<invocacion>        ::= ID '(' <argumentos> ')'
+<factor>              ::= ID
+                        | CTE_E
+                        | CTE_R
+                        | '(' <expresion> ')'
 
-<argumentos>        ::= <expresion> ',' <expresion>
-                      | <expresion>
-                      | lambda
-
-
+<tipo>                ::= ENTERO
+                        | REAL
 ```
 
 ---
