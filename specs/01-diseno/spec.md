@@ -117,21 +117,12 @@ parámetros y sin valor de retorno.
 <sentencias_i>        ::= <sentencias_i> <sentencia_i>
                         | <sentencia_i>
 
-<sentencia_i>         ::= <declaracion>
-                        | <asignacion>
-                        | <seleccion>
-                        | <bucle>
-                        | <salida>
+<sentencia_i>         ::= <declaracion> | <asignacion> | <seleccion> | <bucle> | <salida>
 
 <sentencias>          ::= <sentencias> <sentencia>
                         | <sentencia>
 
-<sentencia>           ::= <declaracion>
-                        | <asignacion>
-                        | <seleccion>
-                        | <bucle>
-                        | <salida>
-                        | <retorno>
+<sentencia>           ::= <declaracion> | <asignacion> | <seleccion> | <bucle> | <salida> | <retorno>
 
 <declaracion>         ::= <tipo> ID '=' <expresion> ';'
                         | <tipo> <ids> ';'
@@ -159,12 +150,7 @@ parámetros y sin valor de retorno.
 
 <condicion>           ::= <expresion> <comparador> <expresion>
 
-<comparador>          ::= IGUAL
-                        | DISTINTO
-                        | MENOR
-                        | MAYOR
-                        | MENOR_IGUAL
-                        | MAYOR_IGUAL
+<comparador>          ::= IGUAL | DISTINTO | MENOR | MAYOR | MENOR_IGUAL | MAYOR_IGUAL
 
 <bucle>               ::= PARA '(' <control> ';' <condicional> ';' CTE_E ')' <bloque>
 
@@ -189,13 +175,9 @@ parámetros y sin valor de retorno.
                         | <termino> '/' <factor>
                         | <factor>
 
-<factor>              ::= ID
-                        | CTE_E
-                        | CTE_R
-                        | '(' <expresion> ')'
+<factor>              ::= ID | CTE_E | CTE_R | '(' <expresion> ')'
 
-<tipo>                ::= ENTERO
-                        | REAL
+<tipo>                ::= ENTERO | REAL
 ```
 
 ---
