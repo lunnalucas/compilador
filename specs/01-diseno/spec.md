@@ -220,26 +220,32 @@ parámetros y sin valor de retorno.
 ## 9. Programa de ejemplo
 
 ```
-real calcular(real base, entero factor) {
-    retornar base * factor;
+real calcular(real a, entero b) {
+    real var;
+
+    si (a >= 0) {
+      var = a * b;
+    } sino {
+      var = a / b;
+    }
+
+    retornar var;
 }
 
-inicio() {
+inicio {
     entero i, acum;
     real res;
 
     res = calcular(10.5, 2);
     acum = 0;
 
-    para (i = 3; i > 0; i--) {
+    para (i = 3; i > 0; 1) {
         si ((i >= 2) && (res > 10.0)) {
             acum = acum + i;
         } sino {
             acum = acum - 1;
         }
     }
-
-    acum = res; 
 
     imprimir(acum);
 }
@@ -251,21 +257,21 @@ real calcularSuma(entero a, real b){
   retornar (a+b);
 }
 
-inicio(){
+inicio {
   entero x = 10;
   real y = 2.5;
   entero i, resultado;
 
   resultado = calcularSuma(x,y);
-  imprimir ("Resultado con Redondeo: ");
+  imprimir ("Resultado truncado:");
   imprimir (resultado);
 
-  para (i=6 ; i>=0 && x>5 ; i--){
+  para (i=6 ; i>=0 && x>5 ; 2){
     si(i == 0){
       imprimir("Llegamos a cero");
     }
     sino{
-      imprimir("Valor actual de i: ");
+      imprimir("Valor actual de i:");
       imprimir(i);
     }
   }
@@ -281,3 +287,5 @@ Se deja constancia de lo que el lenguaje **no** incluye:
 - Tipos de datos adicionales (caracter, cadena de caracteres, arreglos, booleanos)
 - Recursión
 - Estructuras de control iterativas distintas a `para` (no hay `while` o `do while`)
+- Operador lógico de negación para expresiones, condiciones o IDs.
+- No se permite combinar cadenas o expresiones en la función `IMPRIMIR`.
