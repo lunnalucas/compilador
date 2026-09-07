@@ -52,8 +52,8 @@ estados propios del autómata.
 | Código | Token | Lexema |
 |--------|--------|-------------|
 | 100 | `ID` | identificador (máx. 20 caracteres) |
-| 101 | `CTE_E` | constante entera |
-| 102 | `CTE_R` | constante real |
+| 101 | `ENTERO` | tipo entero |
+| 102 | `REAL` | tipo real |
 | 103 | `INICIO` | `inicio` |
 | 104 | `ENTERO` | `entero` |
 | 105 | `REAL` | `real` |
