@@ -288,4 +288,4 @@ Se deja constancia de lo que el lenguaje **no** incluye:
 - Recursión
 - Estructuras de control iterativas distintas a `para` (no hay `while` o `do while`)
 - Operador lógico de negación para expresiones, condiciones o IDs.
-- No se permite combinar cadenas o expresiones en la función `IMPRIMIR`.
+- No se permite combinar cadenas y expresiones en la función `IMPRIMIR`.
