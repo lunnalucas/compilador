@@ -1,0 +1,269 @@
+# Spec — Diseño del lenguaje: beta
+
+**Grupo:** B · **Lenguaje de implementación:** C  
+**Estado:** En desarrollo.
+
+---
+
+## 1. Decisiones globales
+
+| #  | Decisión | Valor |
+|----|---|---|
+| D1 | Tipo de datos | dos tipos: Entero y Real |
+| D2 | Rango | Entero: 32 bits y Real: 64 bits  |
+| D3 | Declaración | todas las variables deben ser declaradas con su tipo. |
+| D4 | Alcance y Gestión de memoria | variables globales y locales en memoria estatica. |
+| D5 | Sensibilidad a mayúsculas | `Total` y `total` son variables distintas |
+| D6 | Longitud máxima de identificador | 20 caracteres; más largo se trunca |
+| D7 | Comentarios | de bloque, delimitados por `/*` y `*/` |
+| D8 | Compatibilidad de tipos | compatibilidad entre enteros y reales. |
+| D9 | Bucle for | el campo de control debe ser una declaracion de variable entera o una asignacion entera, el campo de actualización debe contener una variable entera positiva que indica el valor que se decrementara en cada iteración. |
+| D10 | Funciones | se admiten como máximo 2 parámetros |
+| D11 | Pasaje de parámetros | copia-valor |
+| D12 | Imprimir | cada linea imprime una cadena de caracteres, una expresión o una invocación |
+| D13 | División por cero | Error en ejecución |
+| D14 | Plataforma destino | Por definir |
+
+---
+
+## 2. Alfabeto
+
+| Clase | Caracteres |
+|---|---|
+| `L` | `a`–`z`, `A`–`Z` |
+| `D` | `0`–`9` |
+| `SIM` | `+ - * / { } [ ] : @ < > . ^ \| $` |
+| `BL` | espacio, tabulador, salto de línea |
+| `OTRO` | cualquier otro carácter → error léxico |
+
+---
+
+## 3. Palabras reservadas
+
+`RR` · `EE` · `ss` · `sn` · `bf` · `imp` · `rt` · `ini`
+
+Se reconocen como identificadores y se resuelven por búsqueda en tabla, no con
+estados propios del autómata.
+
+---
+
+## 4. Tabla de tokens
+
+| Código | Token | Lexema |
+|--------|--------|-------------|
+| 100 | `ID` | identificador (máx. 20 caracteres) |
+| 101 | `ENTERO` | tipo entero |
+| 102 | `REAL` | tipo real |
+| 103 | `INICIO` | `ini` |
+| 104 | `ENTERO` | `EE` |
+| 105 | `REAL` | `RR` |
+| 106 | `IF` | `ss` |
+| 107 | `ELSE` | `sn` |
+| 108 | `FOR` | `bf` |
+| 109 | `IMPRIMIR` | `imp` |
+| 110 | `RETURN` | `rt` |
+| 111 | `ASIGNACION` | `:` |
+| 112 | `IGUAL` | `::` |
+| 113 | `DISTINTO` | `:$` |
+| 114 | `INICIO_ELEM` | `>` |
+| 115 | `FIN_ELEM` | `<` |
+| 116 | `MAYOR` | `)` |
+| 117 | `MENOR` | `(` |
+| 118 | `MAYOR_IGUAL` | `):` |
+| 119 | `MENOR_IGUAL` | `(:` |
+| 120 | `AND` | `^` |
+| 121 | `OR` | `\|` |
+| 122 | `SUMA` | `+` |
+| 123 | `RESTA` | `-` |
+| 124 | `PRODUCTO` | `*` |
+| 125 | `DIVISION` | `/` |
+| 126 | `INICIO_BLOQUE` | `{` |
+| 127 | `FIN_BLOQUE` | `}` |
+| 128 | `FIN_LINEA` | `.` |
+| 129 | `SEPARADOR` | `@` |
+| 130 | `DECIMAL` | `_` |
+| 131 | `INICIO_CADENA` | `[` |
+| 132 | `FIN_CADENA` | `]` |
+| 133 | `ANTISLASH` | `\` |
+
+---
+
+## 5. Estructura del programa
+
+Un programa del lenguaje comienza con el nombre reservado `ini`, sin
+parámetros y sin valor de retorno.
+- Pueden existir otras funciones.
+
+---
+
+## 6. Gramática
+```
+<programa>            ::= <unidades> <principal>
+                        | <principal>
+
+<principal>           ::= INICIO <bloque_i>
+
+<unidades>            ::= <unidades> <unidad>
+                        | <unidad>
+
+<unidad>              ::= <tipo> ID '>' <parametros> '<' <bloque>
+
+<parametros>          ::= <tipo> ID
+                        | <tipo> ID '@' <tipo> ID
+                        | lambda
+
+<bloque>              ::= '{' <sentencias> '}'
+
+<bloque_i>            ::= '{' <sentencias_i> '}'
+
+<sentencias_i>        ::= <sentencias_i> <sentencia_i>
+                        | <sentencia_i>
+
+<sentencia_i>         ::= <declaracion> | <asignacion> | <seleccion> | <bucle> | <salida>
+
+<sentencias>          ::= <sentencias> <sentencia>
+                        | <sentencia>
+
+<sentencia>           ::= <declaracion> | <asignacion> | <seleccion> | <bucle> | <salida> | <retorno>
+
+<declaracion>         ::= <tipo> ID ':' <expresion> '.'
+                        | <tipo> <ids> '.'
+                        | <tipo> ID '.'
+
+<ids>                 ::= <ids> '@' ID
+                        | ID
+
+<asignacion>          ::= ID ':' <expresion> '.'
+                        | ID ':' <invocacion> '.'
+
+<invocacion>          ::= ID '>' <argumentos> '<'
+
+<seleccion>           ::= IF '>' <condicional> '<' <bloque> 
+                        | IF '>' <condicional> '<' <bloque> ELSE <bloque>
+
+<condicional>         ::= <condicional> OR <t_condicional>
+                        | <t_condicional>
+
+<t_condicional>       ::= <t_condicional> AND <f_condicional>
+                        | <f_condicional>
+
+<f_condicional>       ::= <condicion>
+                        | '>' <condicional> '<'
+
+<condicion>           ::= <expresion> <comparador> <expresion>
+
+<comparador>          ::= IGUAL | DISTINTO | MENOR | MAYOR | MENOR_IGUAL | MAYOR_IGUAL
+
+<bucle>               ::= FOR '>' <control> '\' <condicional> '\' CTE_E '<' <bloque>
+
+<control>             ::= ENTERO ID ':' CTE_E
+                        | ID ':' CTE_E
+
+<salida>              ::= IMPRIMIR '>' CADENA '<' '.'
+                        | IMPRIMIR '>' <expresion> '<' '.'
+                        | IMPRIMIR '>' <invocacion> '<' '.'
+
+<retorno>             ::= RETURN <expresion> '.'
+
+<argumentos>          ::= <expresion> '@' <expresion>
+                        | <expresion>
+                        | lambda
+
+<expresion>           ::= <expresion> '+' <termino>
+                        | <expresion> '-' <termino>
+                        | <termino>
+
+<termino>             ::= <termino> '*' <factor>
+                        | <termino> '/' <factor>
+                        | <factor>
+
+<factor>              ::= ID | CTE_E | CTE_R | '>' <expresion> '<'
+
+<tipo>                ::= ENTERO | REAL
+```
+
+---
+
+## 7. Semántica
+
+| Regla | Definición |
+|---|---|
+| R1 | Inicialización por defecto: variables enteras se inicializan en `0` y reales en `0_0` |
+| R2 | En operaciones aritméticas entre `entero` y `real`, el entero se promueve a real y el resultado de la operación es real |
+| R3 | En asignación de `real` a variable de tipo `entero`, se realiza truncamiento descartando la parte decimal |
+| R4 | En asignación de `entero` a variable de tipo `real`, se realiza promoción exacta a decimal |
+| R5 | En comparaciones entre `entero` y `real`, el entero se promueve a real |
+
+---
+
+## 8. Responsabilidad de cada error
+
+| Código | Descripción | Fase que lo detecta |
+|---|---|---|
+| E1 | Carácter no perteneciente al alfabeto | Léxico |
+| E2 | Constante numérica mal formada (ej. `12_3_4`, `10abc`) | Léxico |
+| E3 | Comentario de bloque sin cerrar al fin de archivo (`/* ...`) | Léxico |
+| E4 | Identificador excede longitud máxima de 20 caracteres (advertencia y truncamiento) | Léxico |
+| E5 | Sentencia o estructura mal formada | Sintáctico |
+| E6 | Variable no declarada al finalizar el análisis | Semántico |
+| E7 | Variable redeclarada en el mismo alcance | Semántico |
+| E8 | Contador de bucle `para` real | Semántico |
+| E9 | Función con más de 2 parámetros | Sintáctico / Semántico |
+| E10 | Llamada recursiva | Semántico |
+| E11 | Constante numérica fuera de rango | Léxico / Semántico |
+| E12 | Cantidad o tipo incompatible de argumentos en invocación de función | Semántico |
+| E13 | Variable negativa en el campo de actualizacion del bucle `para` | Semántico |
+| E14 | Variable `real` en el campo de actualizacion del bucle `para` | Semántico |
+| E15 | Constante `real` como variable de control en el bucle `para` | Semántico |
+| E16 | División por cero en tiempo de ejecución | Ejecución |
+
+---
+
+## 9. Programa de ejemplo
+
+```
+RR multiplicar>RR a@RR b<{
+  RR res.
+  res : a * b.
+
+  rt res.
+}
+
+ini{
+  RR var1@var2.
+  EE total@i.
+  EE acum : 1.
+
+  var1 : 20_5.
+  var2 : 10_2324.
+
+  total : multiplicar >var1@var2<.
+
+  imp>[se multiplicara:]<.
+  imp>var1<.
+  imp>var2<.
+  imp>[resultado truncado:]<.
+  imp>total<.
+
+  bf >i:10\i)0 ^ var1 (: 30 ^ var2 :$ 5\1< {
+    ss>i :: 1< {
+      imp>[ultima iteracion]<.
+    } sn {
+      imp>[iteracion numero:]<.
+      imp>acum<.
+    }
+  }
+
+}
+```
+---
+
+## 10. Fuera de alcance
+
+Se deja constancia de lo que el lenguaje **no** incluye:
+
+- Tipos de datos adicionales (caracter, cadena de caracteres, arreglos, booleanos)
+- Recursión
+- Estructuras de control iterativas distintas a `FOR` (no hay `while` o `do while`)
+- Operador lógico de negación para expresiones, condiciones o IDs.
+- No se permite combinar cadenas y expresiones en la función `IMPRIMIR`.
