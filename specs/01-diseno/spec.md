@@ -20,9 +20,10 @@
 | D9 | Bucle for | el campo de control debe ser una declaracion de variable entera o una asignacion entera, el campo de actualización debe contener una variable entera positiva que indica el valor que se decrementara en cada iteración. |
 | D10 | Funciones | se admiten como máximo 2 parámetros |
 | D11 | Pasaje de parámetros | copia-valor |
-| D12 | Imprimir | cada linea imprime una cadena de caracteres, una expresión o una invocación |
-| D13 | División por cero | Error en ejecución |
-| D14 | Plataforma destino | Por definir |
+| D12 | Imprimir | los datos de salida pueden ser cadenas o expresiones (incluye funciones) no pueden ser ambos.  |
+| D13 | Funcion | las funciones pueden tener 1 o 2 parámetros |
+| D14 | División por cero | Error en ejecución |
+| D15 | Plataforma destino | Por definir |
 
 ---
 
@@ -52,8 +53,8 @@ estados propios del autómata.
 | Código | Token | Lexema |
 |--------|--------|-------------|
 | 100 | `ID` | identificador (máx. 20 caracteres) |
-| 101 | `ENTERO` | tipo entero |
-| 102 | `REAL` | tipo real |
+| 101 | `CTE_E` | constante entera |
+| 102 | `CTE_R` | constante real |
 | 103 | `INICIO` | `inicio` |
 | 104 | `ENTERO` | `entero` |
 | 105 | `REAL` | `real` |
@@ -108,7 +109,6 @@ parámetros y sin valor de retorno.
 
 <parametros>          ::= <tipo> ID
                         | <tipo> ID ',' <tipo> ID
-                        | lambda
 
 <bloque>              ::= '{' <sentencias> '}'
 
@@ -165,7 +165,6 @@ parámetros y sin valor de retorno.
 
 <argumentos>          ::= <expresion> ',' <expresion>
                         | <expresion>
-                        | lambda
 
 <expresion>           ::= <expresion> '+' <termino>
                         | <expresion> '-' <termino>
@@ -207,13 +206,14 @@ parámetros y sin valor de retorno.
 | E7 | Variable redeclarada en el mismo alcance | Semántico |
 | E8 | Contador de bucle `para` real | Semántico |
 | E9 | Función con más de 2 parámetros | Sintáctico / Semántico |
-| E10 | Llamada recursiva | Semántico |
-| E11 | Constante numérica fuera de rango | Léxico / Semántico |
-| E12 | Cantidad o tipo incompatible de argumentos en invocación de función | Semántico |
-| E13 | Variable negativa en el campo de actualizacion del bucle `para` | Semántico |
-| E14 | Variable `real` en el campo de actualizacion del bucle `para` | Semántico |
-| E15 | Constante `real` como variable de control en el bucle `para` | Semántico |
-| E16 | División por cero en tiempo de ejecución | Ejecución |
+| E10 | Función sin parametros | Sintáctico / Semántico |
+| E11 | Llamada recursiva | Semántico |
+| E12 | Constante numérica fuera de rango | Léxico / Semántico |
+| E13 | Cantidad o tipo incompatible de argumentos en invocación de función | Semántico |
+| E14 | Variable negativa en el campo de actualizacion del bucle `para` | Semántico |
+| E15 | Variable `real` en el campo de actualizacion del bucle `para` | Semántico |
+| E16 | Constante `real` como variable de control en el bucle `para` | Semántico |
+| E17 | División por cero en tiempo de ejecución | Ejecución |
 
 ---
 
@@ -288,4 +288,4 @@ Se deja constancia de lo que el lenguaje **no** incluye:
 - Recursión
 - Estructuras de control iterativas distintas a `para` (no hay `while` o `do while`)
 - Operador lógico de negación para expresiones, condiciones o IDs.
-- No se permite combinar cadenas y expresiones en la función `IMPRIMIR`.
+- Combinar cadenas y expresiones en una misma función `IMPRIMIR`.
