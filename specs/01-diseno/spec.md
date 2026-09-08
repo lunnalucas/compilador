@@ -157,10 +157,14 @@ parámetros y sin valor de retorno.
 <control>             ::= ENTERO ID '=' CTE_E
                         | ID '=' CTE_E
 
-<salida>              ::= IMPRIMIR '(' CADENA ')' ';'
-                        | IMPRIMIR '(' <expresion> ')' ';'
-                        | IMPRIMIR '(' <invocacion> ')' ';'
+<salida>              ::= IMPRIMIR '(' <emementos_salida> ')' ';'
 
+<emementos_salida>    ::= <emementos_salida> ',' <ememento_salida>
+                        |<ememento_salida>
+
+<ememento_salida>      ::= CADENA
+                        |<expresion> '|' <invocacion>
+                        
 <retorno>             ::= RETORNAR <expresion> ';'
 
 <argumentos>          ::= <expresion> ',' <expresion>
