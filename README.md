@@ -29,6 +29,7 @@ _Trabajo Práctico B (Convivencia de enteros y reales con compatibilidad total y
 
 ## Estructura del repositorio
 
+- `assets/` — recursos estáticos
 - `docs/` — entregables formales de cada etapa
 - `src/` — código del compilador
 - `tests/` — casos de prueba
