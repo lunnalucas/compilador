@@ -287,7 +287,7 @@ inicio {
 
 ## 10. Automata finito
 
-![Automata](assets/images/automata.svg)
+![Automata](../../assets/images/automata.svg)
 
 ---
 
