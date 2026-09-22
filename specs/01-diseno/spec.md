@@ -20,7 +20,7 @@
 | D9 | Bucle for | el campo de control debe ser una declaracion de variable entera o una asignacion entera, el campo de actualización debe contener una variable entera positiva que indica el valor que se decrementara en cada iteración. |
 | D10 | Funciones | se admiten como máximo 2 parámetros |
 | D11 | Pasaje de parámetros | copia-valor |
-| D12 | Imprimir | los datos de salida pueden ser cadenas o expresiones (incluye funciones) no pueden ser ambos.  |
+| D12 | Imprimir | los datos de salida pueden ser cadenas o expresiones (incluye funciones), pueden estar combinadas en una sola línea separados por ','.  |
 | D13 | Funcion | las funciones pueden tener 1 o 2 parámetros |
 | D14 | División por cero | Error en ejecución |
 | D15 | Plataforma destino | Por definir |
@@ -158,10 +158,14 @@ parámetros y sin valor de retorno.
 <control>             ::= ENTERO ID '=' CTE_E
                         | ID '=' CTE_E
 
-<salida>              ::= IMPRIMIR '(' CADENA ')' ';'
-                        | IMPRIMIR '(' <expresion> ')' ';'
-                        | IMPRIMIR '(' <invocacion> ')' ';'
+<salida>              ::= IMPRIMIR '(' <emementos_salida> ')' ';'
 
+<emementos_salida>    ::= <emementos_salida> ',' <ememento_salida>
+                        |<ememento_salida>
+
+<ememento_salida>      ::= CADENA
+                        |<expresion> '|' <invocacion>
+                        
 <retorno>             ::= RETORNAR <expresion> ';'
 
 <argumentos>          ::= <expresion> ',' <expresion>
