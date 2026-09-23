@@ -13,5 +13,22 @@ Las matrices tienen una columna adicional reservada para mantener el mismo
 índice de evento que `proceso`; los espacios, tabuladores y saltos de línea se
 descartan desde el autómata.
 
-Este módulo solo contiene datos y la clasificación de caracteres; `yylex()`
-se implementará sobre estas tablas en la siguiente etapa.
+`lexer.c` implementa `yylex()` con un recorrido por los mismos estados y
+eventos definidos en las tablas. La implementación mantiene las decisiones
+operativas en funciones pequeñas (`read_identifier`, `read_number`,
+`read_string` y `skip_comment`) para que resulte fácil de seguir.
+
+## Uso básico
+
+```c
+FILE *source = fopen("programa.beta", "r");
+lexer_init(source);
+
+while ((token = yylex()) != 0) {
+    /* procesar token y yytext */
+}
+```
+
+`yytext`, `yyleng` y `yylineno` contienen el lexema actual, su longitud y la
+línea donde fue leído. El lexer informa los errores por `stderr` y devuelve
+`0` al llegar a EOF.

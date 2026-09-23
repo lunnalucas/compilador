@@ -119,7 +119,7 @@ const ReservedWord reserved_words[] = {
 
 const size_t reserved_words_count = sizeof(reserved_words) / sizeof(reserved_words[0]);
 
-int get_event(int character)
+int get_evento(int character)
 {
     if (isalpha((unsigned char) character))
         return EVENT_LETTER;
@@ -150,7 +150,7 @@ int get_event(int character)
     }
 }
 
-int get_table_event(int event)
+int get_table_evento(int event)
 {
     if (event == EVENT_SPACE)
         return -1;

@@ -10,21 +10,19 @@
 **Fecha:** 22/09/2026 · GPT-5.6
 
 **Qué pedí:** Pasar a código C las matrices y tablas definidas en la
-especificación del analizador léxico, dejando una estructura simple y fácil de
-navegar para implementar `yylex()` posteriormente.
+especificación del analizador léxico para implementar `yylex()` posteriormente.
 
 **Qué se hizo:** Se creó `src/lexico/` con los siguientes archivos:
 
 - `lexer_tables.h`: estados, eventos, acciones, códigos de tokens,
   declaraciones de las matrices y tabla de palabras reservadas.
 - `lexer_tables.c`: matrices `nuevo_estado`, `proceso` y `token`, tabla de
-  palabras reservadas y función `get_event()`.
+  palabras reservadas y función `get_evento()`.
 - `README.md`: descripción breve de la organización y del uso previsto.
 
-Las tablas se dejaron como arreglos explícitos para que el futuro lexer pueda
+Las tablas se dejaron como arreglos para que el futuro lexer pueda
 recorrer el autómata mediante `proceso[estado][evento]`,
-`nuevo_estado[estado][evento]` y `token[estado][evento]`, en lugar de reemplazar
-las reglas por una cadena de condicionales.
+`nuevo_estado[estado][evento]` y `token[estado][evento]`.
 
 **Decisiones tomadas:**
 
@@ -34,28 +32,68 @@ las reglas por una cadena de condicionales.
   agregar estados específicos para cada palabra.
 - Los estados `-1` y `-2` representan finalización y error,
   respectivamente.
-- `get_event()` centraliza la clasificación de caracteres en las columnas del
+- `get_evento()` centraliza la clasificación de caracteres en las columnas del
   autómata.
 - La tabla `proceso` conserva la columna de espacios, mientras que las otras
   matrices mantienen una columna alineada para que el acceso por índice sea
   directo y sencillo.
 
-**Qué se revisó:** La especificación contiene algunas diferencias entre las
-matrices y otras secciones, especialmente en la representación de ciertas
-columnas y del punto (`.`). No se modificaron las reglas del lenguaje ni se
-inventaron transiciones nuevas: se conservaron los valores documentados y se
-dejó la resolución de esas diferencias para la implementación completa de
-`yylex()`.
 
 **Impacto en la spec:** No se modificaron las reglas del lenguaje. Se agregó
-la implementación inicial de las tablas en `src/lexico/`; `yylex()` y la
-integración con la tabla de símbolos quedan para una iteración posterior.
+la implementación inicial de las tablas en `src/lexico/`.
 
 ---
 
 ## Estado al cierre de la iteración
 
-Las tablas del autómata ya están disponibles como código C reutilizable y
-documentado. El siguiente paso es implementar `yylex()` usando estas
-estructuras, incluyendo el manejo del buffer de lexemas, `unread`, errores
-léxicos y actualización de la tabla de símbolos.
+Las tablas del autómata ya están disponibles como código C. El siguiente paso es implementar `yylex()` usando estas
+estructuras.
+
+---
+
+## Iteración 2 — Implementación de `yylex()`
+**Fecha:** 22/09/2026 · GPT-5.6
+
+**Qué pedí:** Implementar el lexer sobre las tablas y estructuras
+creadas en la iteración anterior.
+
+**Qué se hizo:** Se agregaron `src/lexico/lexer.h` y
+`src/lexico/lexer.c`. La interfaz expone:
+
+- `lexer_init(FILE *)` para asociar el archivo fuente.
+- `yylex()` para devolver un token por llamada.
+- `yytext`, `yyleng` y `yylineno` para consultar el lexema actual, su longitud
+  y la línea de origen.
+
+El lexer implementa:
+
+- identificadores y palabras reservadas;
+- constantes enteras y reales;
+- operadores simples y dobles (`=`, `==`, `!=`, `<=` y `>=`);
+- operadores aritméticos, lógicos y delimitadores;
+- cadenas delimitadas por comillas;
+- comentarios de bloque `/* ... */`;
+- espacios, tabuladores y saltos de línea;
+- errores por caracteres inválidos, secuencias incompletas, números mal
+  formados, identificadores truncados y comentarios o cadenas sin cerrar.
+
+**Decisiones tomadas:**
+
+- Se usa un carácter pendiente (`unread`) para no perder el primer carácter que
+  ya fue leído pero pertenece al token siguiente.
+- Las palabras reservadas se buscan en `reserved_words`, sin crear estados
+  adicionales para cada palabra.
+- Los identificadores se almacenan con un máximo de 20 caracteres.
+- Los errores se informan por `stderr` y el análisis continúa cuando es seguro
+  hacerlo.
+
+
+**Impacto en la spec:** Se implementó la interfaz `yylex()` prevista en la
+sección 1.
+
+---
+
+## Estado al cierre de la iteración
+
+El analizador léxico ya puede leer un `FILE *` y producir tokens de `beta` uno
+por uno.
