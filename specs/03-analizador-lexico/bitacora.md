@@ -124,7 +124,7 @@ Qué se hizo:
 
 - Se aisló la prueba en un ejecutable dedicado (test_lexer) para inspeccionar la salida en consola antes de proceder con la integración sintáctica.
 
-  Resultados y anomalías detectadas:
+  **Resultados y anomalías detectadas:**
 
 - Duplicación de tokens: Al procesar print "Hola", la función yylex() devolvió la secuencia repetida (print, Hola, print, Hola).
 
