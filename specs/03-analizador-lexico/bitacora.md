@@ -118,6 +118,7 @@ Qué se hizo:
   if (x >= 5) {
       print "Hola";
   }
+```
 
 **Decisiones tomadas:**
 
