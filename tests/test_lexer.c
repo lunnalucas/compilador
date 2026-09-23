@@ -68,6 +68,7 @@ int main(int argc, char **argv)
     while ((token = yylex()) != 0) {
         printf("%-8d %-16s %-8d %s\n",
                yylineno, token_name(token), token, yytext);
+        fflush(stdout);
     }
 
     printf("--------------------------------------------------\n");
