@@ -2,7 +2,7 @@
 
 **Grupo:** B · **Lenguaje de implementación:** C
 **Spec de referencia:** `specs/03-analizador-lexico/spec.md`
-**Modelos usados:** GPT-5.6
+**Modelos usados:** GPT-5.6, 3.8 Flash
 
 ---
 
@@ -65,18 +65,6 @@ creadas en la iteración anterior.
 - `yytext`, `yyleng` y `yylineno` para consultar el lexema actual, su longitud
   y la línea de origen.
 
-El lexer implementa:
-
-- identificadores y palabras reservadas;
-- constantes enteras y reales;
-- operadores simples y dobles (`=`, `==`, `!=`, `<=` y `>=`);
-- operadores aritméticos, lógicos y delimitadores;
-- cadenas delimitadas por comillas;
-- comentarios de bloque `/* ... */`;
-- espacios, tabuladores y saltos de línea;
-- errores por caracteres inválidos, secuencias incompletas, números mal
-  formados, identificadores truncados y comentarios o cadenas sin cerrar.
-
 **Decisiones tomadas:**
 
 - Se usa un carácter pendiente (`unread`) para no perder el primer carácter que
@@ -102,7 +90,7 @@ por uno.
 ---
 
 ## Iteración 3 — Creación de Suite de Prueba y verificación del lexer
-**Fecha:** 23/09/2026 · GEMINI
+**Fecha:** 23/09/2026 · 3.8 Flash
 
 **Qué pedí:** Basándote en la especificación de specs/03-analizador-lexico/spec.md, genérame un archivo de prueba en C llamado tests/test_lexer.c que abra un archivo prueba.uno y ejecute la función yylex() hasta llegar al final, imprimiendo cada token detectado con su número y texto.
 Qué se hizo:
@@ -136,9 +124,48 @@ Qué se hizo:
 
 ## Estado al cierre de la iteración
 
-La suite de prueba está operativa y lista para ejecutar casos de borde (identificadores con _, longitud > 20 caracteres y enteros fuera de rango).
+La prueba anterior estaba operativa, pero usaba `prueba.uno` y palabras de
+otro lenguaje. Se reemplazó por una prueba que recibe cualquier archivo por
+la línea de comandos.
 
+---
 
+## Iteración 4 — Prueba de programas beta
+**Fecha:** 23/09/2026 · GPT-5.6
 
+**Qué pedí:** Se debe poder probar programas pertenecientes a mi lenguaje mediante archivos `.beta` al analizador léxico y ver todos los tokens que devuelve.
 
+**Qué se hizo:**
 
+- Se actualizó `tests/test_lexer.c` para recibir la ruta del archivo como
+  argumento, en lugar de abrir siempre `prueba.uno`.
+- Se agregaron los nombres de los tokens junto con su código, línea y lexema.
+- Se agregó `tests/correctos/ejemplo.beta` con palabras y estructuras del
+  lenguaje beta.
+- Se creó `specs/03-analizador-lexico/README.md` con los comandos para
+  compilar y ejecutar la prueba.
+- Se eliminaron `prueba.uno` y el ejecutable viejo porque correspondían al
+  ejemplo de otro lenguaje. El ejecutable se genera nuevamente al compilar.
+
+**Decisiones tomadas:**
+
+- La herramienta recibe un solo archivo por ejecución para poder probar
+  distintos programas sin cambiar el código.
+- Se mantuvo `yylex()` y la implementación del lexer sin cambios: esta tarea
+  agrega una forma de observar sus resultados, no nuevas reglas del lenguaje.
+
+**Verificación:**
+
+Se compiló la herramienta con GCC usando `-Wall -Wextra -std=c11` y se ejecutó
+sobre `tests/correctos/ejemplo.beta`. El resultado mostró los tokens de beta
+sin duplicaciones.
+
+**Impacto en la spec:** No se modificaron las reglas del analizador léxico.
+Se agregó una herramienta de prueba y su documentación.
+
+---
+
+## Estado al cierre de la iteración
+
+El analizador léxico se puede probar con cualquier programa beta desde la
+consola, la salida identifica cada token de forma clara pero no utiliza los nombres de los tokens definidos en las especificaciones del lenguaje.

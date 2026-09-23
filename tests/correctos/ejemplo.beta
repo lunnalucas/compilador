@@ -1,0 +1,10 @@
+inicio {
+    entero contador = 10;
+    real promedio = 2.5;
+
+    si (contador >= 1) {
+        imprimir "Resultado";
+    }
+
+    retornar contador;
+}
