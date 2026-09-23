@@ -126,9 +126,9 @@ Qué se hizo:
 
   Resultados y anomalías detectadas:
 
-Duplicación de tokens: Al procesar print "Hola", la función yylex() devolvió la secuencia repetida (print, Hola, print, Hola).
+- Duplicación de tokens: Al procesar print "Hola", la función yylex() devolvió la secuencia repetida (print, Hola, print, Hola).
 
-Incumplimiento de arquitectura: Se confirmó que lexer.c utiliza un bloque switch/case manual para reconocer los tokens en lugar de basarse en la matriz de transiciones de lexer_tables.c.
+- Incumplimiento de arquitectura: Se confirmó que lexer.c utiliza un bloque switch/case manual para reconocer los tokens en lugar de basarse en la matriz de transiciones de lexer_tables.c.
 
 **Impacto en la spec:** Se evidenció la necesidad de refactorizar el motor léxico para alinearlo a la especificación del autómata basado en tablas y corregir la duplicación en cadenas.
 
