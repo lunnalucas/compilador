@@ -1,0 +1,141 @@
+#ifndef BETA_LEXER_TABLES_H
+#define BETA_LEXER_TABLES_H
+
+#include <stddef.h>
+
+enum LexerEvent {
+    EVENT_LETTER,
+    EVENT_DIGIT,
+    EVENT_EQUAL,
+    EVENT_NOT,
+    EVENT_LESS,
+    EVENT_GREATER,
+    EVENT_AND,
+    EVENT_OR,
+    EVENT_PLUS,
+    EVENT_MINUS,
+    EVENT_MULTIPLY,
+    EVENT_SLASH,
+    EVENT_OPEN_PAREN,
+    EVENT_CLOSE_PAREN,
+    EVENT_OPEN_BRACE,
+    EVENT_CLOSE_BRACE,
+    EVENT_SEMICOLON,
+    EVENT_COMMA,
+    EVENT_DOT,
+    EVENT_QUOTE,
+    EVENT_SPACE,
+    EVENT_OTHER,
+    EVENT_UNUSED,
+    EVENT_COUNT
+};
+
+#define LEXER_TABLE_COLUMNS 23
+
+enum LexerState {
+    STATE_START = 0,
+    STATE_IDENTIFIER = 1,
+    STATE_INTEGER = 2,
+    STATE_REAL = 3,
+    STATE_ASSIGNMENT = 4,
+    STATE_EQUAL = 5,
+    STATE_POSSIBLE_NOT_EQUAL = 6,
+    STATE_NOT_EQUAL = 7,
+    STATE_POSSIBLE_LESS_EQUAL = 8,
+    STATE_LESS_EQUAL = 9,
+    STATE_POSSIBLE_GREATER_EQUAL = 10,
+    STATE_GREATER_EQUAL = 11,
+    STATE_AND = 12,
+    STATE_OR = 13,
+    STATE_PLUS = 14,
+    STATE_MINUS = 15,
+    STATE_MULTIPLY = 16,
+    STATE_SLASH = 17,
+    STATE_COMMENT = 18,
+    STATE_POSSIBLE_COMMENT_END = 19,
+    STATE_OPEN_PAREN = 20,
+    STATE_CLOSE_PAREN = 21,
+    STATE_OPEN_BRACE = 22,
+    STATE_CLOSE_BRACE = 23,
+    STATE_END_LINE = 24,
+    STATE_COMMA = 25,
+    STATE_STRING = 26,
+    STATE_STRING_END = 27,
+    STATE_COUNT
+};
+
+enum LexerAction {
+    ACTION_NONE,
+    ACTION_START_IDENTIFIER,
+    ACTION_START_NUMBER,
+    ACTION_ACCUMULATE_IDENTIFIER,
+    ACTION_RECOGNIZE_IDENTIFIER,
+    ACTION_ACCUMULATE_INTEGER,
+    ACTION_RECOGNIZE_INTEGER,
+    ACTION_START_REAL,
+    ACTION_ACCUMULATE_REAL,
+    ACTION_RECOGNIZE_REAL,
+    ACTION_START_STRING,
+    ACTION_ACCUMULATE_STRING,
+    ACTION_RECOGNIZE_STRING,
+    ACTION_IGNORE,
+    ACTION_ERROR
+};
+
+enum LexerToken {
+    TOKEN_ID = 100,
+    TOKEN_INTEGER = 101,
+    TOKEN_REAL = 102,
+    TOKEN_START = 103,
+    TOKEN_INTEGER_TYPE = 104,
+    TOKEN_REAL_TYPE = 105,
+    TOKEN_IF = 106,
+    TOKEN_ELSE = 107,
+    TOKEN_FOR = 108,
+    TOKEN_PRINT = 109,
+    TOKEN_RETURN = 110,
+    TOKEN_ASSIGN = 111,
+    TOKEN_EQUAL = 112,
+    TOKEN_NOT_EQUAL = 113,
+    TOKEN_LESS = 114,
+    TOKEN_GREATER = 115,
+    TOKEN_LESS_EQUAL = 116,
+    TOKEN_GREATER_EQUAL = 117,
+    TOKEN_AND = 118,
+    TOKEN_OR = 119,
+    TOKEN_PLUS = 120,
+    TOKEN_MINUS = 121,
+    TOKEN_MULTIPLY = 122,
+    TOKEN_DIVIDE = 123,
+    TOKEN_OPEN_PAREN = 124,
+    TOKEN_CLOSE_PAREN = 125,
+    TOKEN_OPEN_BRACE = 126,
+    TOKEN_CLOSE_BRACE = 127,
+    TOKEN_SEMICOLON = 128,
+    TOKEN_COMMA = 129,
+    TOKEN_DOT = 130,
+    TOKEN_QUOTE = 131,
+    TOKEN_STRING = 132
+};
+
+typedef struct {
+    int next_state;
+    enum LexerAction action;
+} LexerTransition;
+
+extern const int nuevo_estado[STATE_COUNT][LEXER_TABLE_COLUMNS];
+extern const LexerTransition proceso[STATE_COUNT][EVENT_COUNT];
+extern const int token[STATE_COUNT][LEXER_TABLE_COLUMNS];
+
+int get_evento(int character);
+int get_table_evento(int event);
+
+typedef struct {
+    const char *lexeme;
+    int token;
+} ReservedWord;
+
+extern const ReservedWord reserved_words[];
+extern const size_t reserved_words_count;
+
+#endif
