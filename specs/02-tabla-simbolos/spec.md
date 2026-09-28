@@ -17,11 +17,13 @@ que el compilador necesita conservar durante las fases posteriores. Como mínimo
 cada entrada debe contener:
 
 - `nombre`
+- `categoria`
 - `tipo`
 - `valor`
 - `longitud`
 - `alcance`
 - `ubicacion`
+
 
 Además, la tabla debe permitir resolver un nombre según su alcance, detectar
 declaraciones duplicadas y conservar los metadatos necesarios de variables,
@@ -38,7 +40,7 @@ Esta especificación incluye:
 
 1. la representación de variables, parámetros, funciones y constantes;
 2. la tabla de palabras reservadas;
-3. la creación, búsqueda y salida de ámbitos;
+3. la creación, búsqueda y salida de scopes;
 4. la normalización de identificadores de acuerdo con el límite del lenguaje;
 5. la información de tipos, valores, longitudes y almacenamiento;
 6. los errores y advertencias propios de la tabla de símbolos;
@@ -46,9 +48,9 @@ Esta especificación incluye:
 
 Quedan fuera de esta etapa:
 
-- el reconocimiento de lexemas, que corresponde al analizador léxico;
-- el análisis de la gramática, que corresponde al analizador sintáctico;
-- la comprobación completa de tipos y expresiones;
+- el reconocimiento de lexemas, que corresponde al analizador léxico
+- el análisis de la gramática, que corresponde al analizador sintáctico
+- la comprobación completa de tipos y expresiones
 - la generación de offsets o instrucciones finales, salvo que se reserve el
   espacio necesario para agregarlos posteriormente.
 
@@ -71,24 +73,22 @@ El programa tiene una función principal `inicio`, sin parámetros ni valor de
 retorno. Las otras funciones tienen un tipo de retorno (`entero` o `real`) y
 entre uno y dos parámetros.
 
-## 4. Modelo de ámbitos
+## 4. Modelo de scopes
 
-### 4.1 Ámbitos requeridos
+### 4.1 Scopes requeridos
 
-Se mantienen los siguientes ámbitos:
+Se mantienen los siguientes scopes:
 
-| Ámbito | Contenido | Creación | Destrucción |
-|---|---|---|---|
-| Global | Funciones y nombres reservados del compilador. | Antes de analizar el programa. | Al finalizar la compilación. |
-| Función | Parámetros y variables pertenecientes a una función. | Al reconocer la cabecera de una función. | Al finalizar su bloque. |
-| Principal | Variables declaradas dentro de `inicio`. | Al reconocer `inicio`. | Al finalizar el bloque principal. |
-| Bloque anidado | Declaraciones de un bloque que admita declaraciones según la gramática. | Al entrar en `{`. | Al salir de `}`. |
+| Ámbito | Contenido |
+|---|---|
+| Global | Funciones y nombres reservados del compilador. |
+| Función | Parámetros y variables pertenecientes a una función. |
+| Principal | Variables declaradas dentro de `inicio`. | 
+| Bloque anidado | Declaraciones de un bloque que admita declaraciones según la gramática. | 
 
-Los ámbitos se organizan en una pila. La búsqueda comienza en el ámbito actual y
+Los scopes se organizan en una pila. La búsqueda comienza en el scope actual y
 continúa hacia sus padres hasta llegar al global. Una declaración sólo se
-compara con las entradas del ámbito actual; por lo tanto, una declaración en un
-ámbito interno puede ocultar un nombre de un ámbito externo, pero no puede
-duplicar un nombre ya declarado en el mismo ámbito.
+compara con las entradas del scope actual.
 
 Las funciones se registran en el ámbito global. `inicio` se registra como
 función principal especial y no puede declararse otra función con ese nombre.
@@ -126,6 +126,7 @@ La implementación mínima que debe utilizar este esquema:
 | Campo  | Significado |
 |---|---|
 | `nombre` | nombre efectivo almacenado. Tiene como máximo 20 caracteres. |
+| `categoria` | se indica si el simbolo es una funcion o una variable. |
 | `tipo` | tipo de dato del símbolo o tipo de retorno de una función. |
 | `valor` | valor de una constante o literal; ausente para parámetros y funciones. |
 | `longitud` | cantidad de caracteres del `nombre` efectivo. |
@@ -149,7 +150,7 @@ Para entradas de categoría `FUNCION` se agregan:
 - `CTE_R` se almacena como real de 64 bits.
 - Una variable sin inicialización explícita recibe `0` o `0.0`, según su tipo,
   de acuerdo con R1.
-- Una función no tiene `valor`; su resultado se obtiene durante la ejecución.
+- Una función no tiene `valor`, su resultado se obtiene durante la ejecución.
 
 ## 7. Tabla de palabras reservadas
 
@@ -176,18 +177,18 @@ identificador y luego realiza esta consulta.
 
 La tabla de símbolos se considera aceptada cuando:
 
-1. toda entrada contiene como mínimo `nombre`, `tipo`, `valor`, `longitud`, `alcance` y `ubicacion`.
+1. toda entrada contiene como mínimo `nombre`, `categoria`, `tipo`, `valor`, `longitud`, `alcance` y `ubicacion`.
 2. el valor está presente para constantes y literales, y es explícitamente
-   ausente para funciones y parámetros;
-3. distingue variables, parámetros, funciones, constantes, cadenas y reservadas;
-4. resuelve nombres desde el ámbito más interno hacia el global;
-5. detecta redeclaraciones sólo dentro del ámbito donde ocurren;
-6. conserva el tipo `ENTERO` o `REAL` y sus rangos de 32 y 64 bits;
+   ausente para funciones y parámetros
+3. distingue variables, parámetros, funciones, constantes, cadenas y reservadas
+4. resuelve nombres desde el ámbito más interno hacia el global
+5. detecta redeclaraciones sólo dentro del ámbito donde ocurren
+6. conserva el tipo `ENTERO` o `REAL` y sus rangos de 32 y 64 bits
 7. mantiene nombres sensibles a mayúsculas y con el truncamiento ya realizado
-   por el lexer;
-8. registra las funciones, su retorno y sus parámetros en orden;
-9. aplica inicialización por defecto a las variables;
-10. permite consultar literales y conservar sus valores;
-11. no confunde “nombre inexistente” con una entrada válida;
-12. libera todos los ámbitos y entradas al finalizar la compilación;
-13. no modifica las reglas léxicas ni agrega tokens no definidos en el diseño.
+   por el lexer
+8. registra las funciones y sus parámetros en orden
+9. aplica inicialización por defecto a las variables
+10. permite consultar literales y conservar sus valores
+11. no confunde “nombre inexistente” con una entrada válida
+12. libera todos los ámbitos y entradas al finalizar la compilación
+13. no modifica las reglas léxicas ni agrega tokens no definidos en el diseño

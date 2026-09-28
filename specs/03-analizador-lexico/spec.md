@@ -14,17 +14,85 @@ El analizador léxico recibe un archivo fuente de beta y lo recorre de izquierda
 derecha, una sola vez, produciendo un token por llamada a `yylex()`. No realiza
 validación sintáctica ni semántica.
 
-La interfaz mínima es:
+En pseudocodigo:
 
 ```c
-int yylex(void);
+yylex(){
+
+  estado = 0     // estado inicial
+  // estado_final = -1
+  // estado_error = -2
+
+  while (estado != -1 and estado != -2){  // mientras no sea fin o error
+    
+    c = leer_caracter()   // guardo caracter leido
+
+    columna = get_evento(c)    // numero de columna en base a caracter leido
+    proceso[estado][columna]    // ejecutamos la funcion correspondiente
+    
+    estado = nuevo_estado[estado][columna]    // guardamos el nuevo estado
+
+  }
+
+  si (unread[estado][columna] == 1){ // si la celda indica unread ejecutamos unread()
+          unread(c)
+  }
+
+  si (estado == -2){
+      retornar ERROR_LEXICO
+  } 
+
+  retornar token_matriz[estado][columna]  // retornamos token
+}
+```
+
+```c
+
+main(){
+
+  si (no hay archivo o archivo incorrecto) {
+    imprimir("Error, debe modificar el archivo de entrada")
+    retornar 1
+  }
+
+  archivo = abrir_archivo("archivo.beta", "r")
+
+  si (archivo == NULL){
+    imprimir("Archivo vacio")
+    retornar 1
+  }
+
+  error_detectado = 0
+
+  while (not fin_archivo(archivo)){
+    token = yylex()   // llamo al AL y guardo el token
+
+    si (token == ERROR_LEXICO){
+      error_detectado = error_detectado + 1
+    }
+    sino {
+      imprimir_token(linea, numero_token, nombre_token, lexema)
+    }
+  }
+  cerrar_archivo(archivo)
+
+  si (error_detectado == 0) {
+    imprimir("Compilacion exitosa")
+    mostrarTS()   // mostramos la tabla de simbolos
+  } sino {
+    imprimir("Analisis lexico completo con errores")
+  }
+
+  retornar 0
+}
+
 ```
 
 Cada llamada consume caracteres hasta formar el siguiente lexema, actualiza el
 valor semántico y la ubicación asociada, y devuelve el código de token definido
 en `specs/01-diseno/spec.md`. Los espacios, tabuladores, saltos de línea y
 comentarios se consumen y no generan tokens. Los errores léxicos se notifican
-mediante el mecanismo de diagnóstico del compilador; el lexer no debe devolver
+mediante el mecanismo de diagnóstico del compilador, el lexer no debe devolver
 un token válido para un lexema inválido.
 
 ### 1.1 Entrada, salida y estado persistente
@@ -34,8 +102,7 @@ un token válido para un lexema inválido.
 | Entrada | Secuencia de caracteres del archivo fuente, interpretada según el alfabeto de diseño. |
 | Salida principal | Código entero del token reconocido. |
 | Valor semántico | Lexema normalizado o valor convertido, según el token. |
-| Ubicación | Línea y columna iniciales y finales del lexema, con líneas y columnas desde 1. |
-| Estado | Posición de lectura, estado del autómata, buffer, modo de comentario/cadena y estado de EOF. |
+| Ubicación | Línea y columna iniciales y finales del lexema. |
 | Errores | Diagnóstico con código, mensaje, lexema involucrado y ubicación. |
 
 El lexer conserva como máximo un carácter de la pila de reads: cuando una
@@ -50,7 +117,7 @@ devuelve mediante `unread()` para procesarlo desde el estado inicial.
 | L2 | Lectura | Máxima coincidencia: se consume el lexema más largo válido antes de finalizarlo. |
 | L3 | Prioridad | Palabras reservadas se resuelven después de reconocer un identificador. |
 | L4 | Identificadores | Comienzan con letra y continúan con letras o dígitos. Son sensibles a mayúsculas. |
-| L5 | Longitud | Se conservan los primeros 20 caracteres y se emite advertencia si se supera el límite; el token usa el lexema truncado. |
+| L5 | Longitud | Se conservan los primeros 20 caracteres y se emite advertencia si se supera el límite, el token usa el lexema truncado. |
 | L6 | Números | Sólo se admiten enteros y reales con una única parte decimal. |
 | L7 | Punto | Un punto aislado no es un token válido. Un punto después de dígitos inicia la forma real. |
 | L8 | Cadenas | Se delimitan por `"`, no admiten escapes (`/n, /t, etc`), pueden contener cualquier carácter excepto `"` y EOF y sólo son válidas en el contexto sintáctico de `imprimir`. |
@@ -161,9 +228,6 @@ lexer ejecuta la acción semántica correspondiente antes de retornar.
 | `unread` | Devuelve el último carácter leído cuando la matriz indica `1`, sin duplicar el avance de línea o columna. |
 | `ERROR` | Construye y emite un diagnóstico léxico con código y ubicación, aplica la recuperación de la sección 12. |
 
-Las acciones no agregan al buffer el carácter leído sólo para decidir el fin del
-lexema. La conversión numérica debe detectar overflow sin comportamiento
-indefinido.
 
 ---
 
@@ -421,7 +485,7 @@ pero debe conservar ese comportamiento observable.
 | Identificador de 21 o más caracteres | Advertencia E4 e `ID` truncado | Límite y truncamiento. |
 | Constante fuera del rango de `entero` o `real` | E12 | Validación de rango. |
 
-### 13.1 Pruebas de invariantes
+### 13.1 Algunos resultados esperados
 
 - Cada llamada exitosa a `yylex()` devuelve exactamente un código de la tabla de
   tokens o EOF.
@@ -455,15 +519,8 @@ La implementación del lexer se considera conforme cuando:
 
 ---
 
-## 15. Dependencias y responsabilidades
+## 15. Responsabilidades
 
-| Dependencia | Responsabilidad |
-|---|---|
-| Especificación de diseño | Alfabeto, palabras reservadas, tokens, límites y errores asignados al lexer. |
-| Tabla de palabras reservadas | Resolver `ID` a `INICIO`, `ENTERO`, `REAL`, `SI`, `SINO`, `PARA`, `IMPRIMIR` o `RETORNAR`. |
-| Tabla de símbolos | Registrar o consultar identificadores sólo si el diseño de esa etapa lo requiere, el lexer no decide tipos ni alcances. |
-| Analizador sintáctico | Consumir tokens y validar contexto, por ejemplo que `CADENA` aparezca en una salida válida. |
-| Módulo de errores | Formatear, contar y presentar diagnósticos sin ocultar la ubicación léxica. |
 
 El lexer es responsable únicamente de reconocer unidades léxicas. La validez de
 una cadena en una llamada a `imprimir`, la cantidad de argumentos, las
