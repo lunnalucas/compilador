@@ -1,7 +1,7 @@
 # Spec — Diseño del lenguaje: beta
 
 **Grupo:** B · **Lenguaje de implementación:** C  
-**Estado:** En desarrollo.
+**Estado:** FINALIZADO.
 
 ---
 
@@ -12,7 +12,7 @@
 | D1 | Tipo de datos | dos tipos: Entero y Real |
 | D2 | Rango | Entero: 32 bits y Real: 64 bits  |
 | D3 | Declaración | todas las variables deben ser declaradas con su tipo. |
-| D4 | Alcance y Gestión de memoria | variables globales y locales en memoria estatica. |
+| D4 | Alcance y Gestión de memoria | variables locales en memoria estatica. |
 | D5 | Sensibilidad a mayúsculas | `Total` y `total` son variables distintas |
 | D6 | Longitud máxima de identificador | 20 caracteres; más largo se trunca |
 | D7 | Comentarios | de bloque, delimitados por `/*` y `*/` |
@@ -158,13 +158,12 @@ parámetros y sin valor de retorno.
 <control>             ::= ENTERO ID '=' CTE_E
                         | ID '=' CTE_E
 
-<salida>              ::= IMPRIMIR '(' <emementos_salida> ')' ';'
+<salida>              ::= IMPRIMIR '(' <elementos_salida> ')' ';'
 
-<emementos_salida>    ::= <emementos_salida> ',' <ememento_salida>
-                        |<ememento_salida>
+<elementos_salida>    ::= <elementos_salida> ',' <elemento_salida>
+                        | <elemento_salida>
 
-<ememento_salida>      ::= CADENA
-                        |<expresion> '|' <invocacion>
+<elemento_salida>      ::= CADENA | <expresion> | <invocacion>
                         
 <retorno>             ::= RETORNAR <expresion> ';'
 
@@ -245,7 +244,7 @@ inicio {
     acum = 0;
 
     para (i = 3; i > 0; 1) {
-        si ((i >= 2) && (res > 10.0)) {
+        si ((i >= 2) & (res > 10.0)) {
             acum = acum + i;
         } sino {
             acum = acum - 1;
@@ -271,7 +270,7 @@ inicio {
   imprimir ("Resultado truncado:");
   imprimir (resultado);
 
-  para (i=6 ; i>=0 && x>5 ; 2){
+  para (i=6 ; i>=0 & x>5 ; 2){
     si(i == 0){
       imprimir("Llegamos a cero");
     }

@@ -38,7 +38,7 @@ un token válido para un lexema inválido.
 | Estado | Posición de lectura, estado del autómata, buffer, modo de comentario/cadena y estado de EOF. |
 | Errores | Diagnóstico con código, mensaje, lexema involucrado y ubicación. |
 
-El lexer conserva como máximo un carácter de lookahead lógico: cuando una
+El lexer conserva como máximo un carácter de la pila de reads: cuando una
 transición termina antes de consumir el carácter siguiente, ese carácter se
 devuelve mediante `unread()` para procesarlo desde el estado inicial.
 
@@ -176,8 +176,10 @@ indefinido.
 ## 7. Matriz de Nuevos Estados
 
 `nuevo_estado[28][22]`
-- `-1`: estado final
-- `-2`: error
+<br>
+`-1`: estado final
+<br>
+`-2`: error
 
 ---
 
@@ -437,17 +439,17 @@ pero debe conservar ese comportamiento observable.
 
 La implementación del lexer se considera conforme cuando:
 
-1. implementa todas las acciones nombradas en la matriz de transiciones;
-2. usa las cuatro matrices con las dimensiones y convenciones indicadas;
-3. devuelve los códigos 100-132 exactamente como en la tabla de diseño;
-4. distingue división de inicio de comentario;
-5. reconoce palabras reservadas por búsqueda después de reconocer `ID`;
+1. implementa todas las acciones nombradas en la matriz de transiciones.
+2. usa las cuatro matrices con las dimensiones y convenciones indicadas.
+3. devuelve los códigos 100-132 exactamente como en la tabla de diseño.
+4. distingue división de inicio de comentario.
+5. reconoce palabras reservadas por búsqueda después de reconocer `ID`.
 6. actualiza línea y columna para cada carácter, incluido el contenido de
-   comentarios y cadenas;
+   comentarios y cadenas.
 7. informa todos los errores de la sección 11 sin continuar como si fueran
-   tokens válidos;
-8. conserva el truncamiento documentado de identificadores y notifica E4;
-9. pasa los casos de prueba y las invariantes de la sección 13;
+   tokens válidos.
+8. conserva el truncamiento documentado de identificadores y notifica E4.
+9. pasa los casos de prueba y las invariantes de la sección 13.
 10. no incorpora reglas de otras fases, como declaraciones, tipos, alcance,
     compatibilidad de expresiones o estructura de `imprimir`.
 
@@ -459,7 +461,7 @@ La implementación del lexer se considera conforme cuando:
 |---|---|
 | Especificación de diseño | Alfabeto, palabras reservadas, tokens, límites y errores asignados al lexer. |
 | Tabla de palabras reservadas | Resolver `ID` a `INICIO`, `ENTERO`, `REAL`, `SI`, `SINO`, `PARA`, `IMPRIMIR` o `RETORNAR`. |
-| Tabla de símbolos | Registrar o consultar identificadores sólo si el diseño de esa etapa lo requiere; el lexer no decide tipos ni alcances. |
+| Tabla de símbolos | Registrar o consultar identificadores sólo si el diseño de esa etapa lo requiere, el lexer no decide tipos ni alcances. |
 | Analizador sintáctico | Consumir tokens y validar contexto, por ejemplo que `CADENA` aparezca en una salida válida. |
 | Módulo de errores | Formatear, contar y presentar diagnósticos sin ocultar la ubicación léxica. |
 
