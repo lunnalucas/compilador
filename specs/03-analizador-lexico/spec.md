@@ -23,18 +23,25 @@ yylex(){
   // estado_final = -1
   // estado_error = -2
 
+  estado_anterior = 0
+  columna_anterior = 0
+
   while (estado != -1 and estado != -2){  // mientras no sea fin o error
     
     c = leer_caracter()   // guardo caracter leido
 
     columna = get_evento(c)    // numero de columna en base a caracter leido
+
+    estado_anterior = estado
+    columna_anterior = columna
+
     proceso[estado][columna]    // ejecutamos la funcion correspondiente
     
     estado = nuevo_estado[estado][columna]    // guardamos el nuevo estado
 
   }
 
-  si (unread[estado][columna] == 1){ // si la celda indica unread ejecutamos unread()
+  si (unread[estado_anterior][columna] == 1){ // si la celda indica unread ejecutamos unread()
           unread(c)
   }
 
@@ -42,7 +49,7 @@ yylex(){
       retornar ERROR_LEXICO
   } 
 
-  retornar token_matriz[estado][columna]  // retornamos token
+  retornar token_matriz[estado_anterior][columna_anterior]  // retornamos token
 }
 ```
 
