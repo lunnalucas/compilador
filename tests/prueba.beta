@@ -1,0 +1,8 @@
+inicio
+{
+    entero x;
+    x = 10;
+    si (x > 5) {
+        imprimir("Hola Beta");
+    }
+}
