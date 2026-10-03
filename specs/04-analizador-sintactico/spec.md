@@ -14,7 +14,7 @@ Su función es verificar que la secuencia de tokens cumpla con las reglas gramat
 * **Representación Intermedia (AST):** Construcción dinámica de nodos del Árbol Sintáctico Abstracto en C durante el análisis.
 * **Manejo de Conversiones:** Inserción de nodos de conversión implícita/explícita en el AST (`ENTERO_A_REAL` y `REAL_A_ENTERO`) según las reglas de compatibilidad de tipos (R2–R5).
 * **Integración:** Interfaz directa entre `yyparse()` y el consumidor del lexer (`yylex()`).
-* **Fuera del alcance:** La generación final de código Assembler y la ejecución en tiempo de ejecución (etapas posteriores).
+* **Fuera del alcance:** La generación final de código Assembler y la ejecución en tiempo de ejecución (contemplado en etapas posteriores).
   
 ## 3- Entradas / Salidas
 
