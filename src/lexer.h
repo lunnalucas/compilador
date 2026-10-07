@@ -2,15 +2,22 @@
 #define LEXER_H
 
 #include <stdio.h>
-#include "lexer_tables.h"
 
-// Función principal que lee el archivo y devuelve el siguiente token reconocido
-int yylex(FILE *archivo);
+/* Valor semántico y ubicación del último token / error. */
+extern char yy_lexema[8192];
+extern int yy_linea, yy_col_ini, yy_col_fin;
+extern long yy_ival;
+extern double yy_fval;
 
-// Función para obtener el texto (lexema) asociado al último token analizado
-const char* get_lexema_actual(void);
+/* Diagnóstico del último error léxico (códigos E1,E2,E3,E12,E18,E19,E20). */
+extern int lex_error_code;
+extern char lex_error_msg[256];
 
-// Función para obtener el número de línea actual donde se encuentra el token
-int get_linea_actual(void);
+/* Listo para Bison: misma firma que usará yyparse(). */
+void lexer_init(FILE *f);
+int yylex(void);
 
-#endif // LEXER_H
+/* Tabla de símbolos mínima de esta fase: dump de identificadores. */
+void mostrarTS(void);
+
+#endif

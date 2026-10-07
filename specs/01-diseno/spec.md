@@ -267,7 +267,7 @@ inicio {
   entero i, resultado;
 
   resultado = calcularSuma(x,y);
-  imprimir ("Resultado truncado:");
+  imprimir ("Resultado truncado");
   imprimir (resultado);
 
   para (i=6 ; i>=0 & x>5 ; 2){
@@ -275,7 +275,7 @@ inicio {
       imprimir("Llegamos a cero");
     }
     sino{
-      imprimir("Valor actual de i:");
+      imprimir("Valor actual de i");
       imprimir(i);
     }
   }
@@ -292,4 +292,4 @@ Se deja constancia de lo que el lenguaje **no** incluye:
 - Recursión
 - Estructuras de control iterativas distintas a `para` (no hay `while` o `do while`)
 - Operador lógico de negación para expresiones, condiciones o IDs.
-- Combinar cadenas y expresiones en una misma función `IMPRIMIR`.
+

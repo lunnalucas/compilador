@@ -17,7 +17,6 @@ que el compilador necesita conservar durante las fases posteriores. Como mínimo
 cada entrada debe contener:
 
 - `nombre`
-- `categoria`
 - `tipo`
 - `valor`
 - `longitud`
@@ -38,13 +37,12 @@ esas fases puedan hacerlo.
 
 Esta especificación incluye:
 
-1. la representación de variables, parámetros, funciones y constantes;
-2. la tabla de palabras reservadas;
-3. la creación, búsqueda y salida de scopes;
-4. la normalización de identificadores de acuerdo con el límite del lenguaje;
-5. la información de tipos, valores, longitudes y almacenamiento;
-6. los errores y advertencias propios de la tabla de símbolos;
-7. la interfaz mínima que utilizarán las demás fases.
+1. la representación de variables, parámetros y funciones;
+2. la creación, búsqueda y salida de ambitos;
+3. la normalización de identificadores de acuerdo con el límite del lenguaje;
+4. la información de tipos, valores, longitudes y almacenamiento;
+5. los errores y advertencias propios de la tabla de símbolos;
+6. la interfaz mínima que utilizarán las demás fases.
 
 Quedan fuera de esta etapa:
 
@@ -66,29 +64,27 @@ Quedan fuera de esta etapa:
 | D6 | El nombre efectivo tiene como máximo 20 caracteres; el lexer trunca los nombres más largos y emite E4. |
 | D10/D13 | Una función puede tener como máximo dos parámetros y, según la gramática vigente, debe tener uno o dos. |
 | D11 | Los parámetros se pasan por copia de valor. |
-| R1 | Una variable `entero` se inicializa en `0` y una `real` en `0.0`. |
+| R1 | Una variable `entero` se inicializa en `0` y una `real` en `0.0` si no se le asigna un valor. |
 | R2–R5 | La información de tipo se consulta para promociones, truncamientos y comparaciones. |
 
 El programa tiene una función principal `inicio`, sin parámetros ni valor de
 retorno. Las otras funciones tienen un tipo de retorno (`entero` o `real`) y
 entre uno y dos parámetros.
 
-## 4. Modelo de scopes
+## 4. Modelo de ambitos
 
-### 4.1 Scopes requeridos
+### 4.1 Ambitos requeridos
 
-Se mantienen los siguientes scopes:
+Se mantienen los siguientes ambitos:
 
 | Ámbito | Contenido |
 |---|---|
-| Global | Funciones y nombres reservados del compilador. |
-| Función | Parámetros y variables pertenecientes a una función. |
-| Principal | Variables declaradas dentro de `inicio`. | 
-| Bloque anidado | Declaraciones de un bloque que admita declaraciones según la gramática. | 
+| Global | Funciones. |
+| Función | Parámetros y variables pertenecientes a una función, incluye la `inicio`. |
 
-Los scopes se organizan en una pila. La búsqueda comienza en el scope actual y
+Los ambitos se organizan en una pila. La búsqueda comienza en el ambito actual y
 continúa hacia sus padres hasta llegar al global. Una declaración sólo se
-compara con las entradas del scope actual.
+compara con las entradas del ambito actual.
 
 Las funciones se registran en el ámbito global. `inicio` se registra como
 función principal especial y no puede declararse otra función con ese nombre.
@@ -106,42 +102,22 @@ Una referencia a una variable o función usa la entrada visible más cercana. Un
 palabra reservada no se trata como identificador de usuario aunque su lexema
 aparezca en el flujo de tokens.
 
-## 5. Categorías de entradas
 
-Cada entrada tiene una categoría explícita:
-
-| Categoría | Uso | Tiene valor almacenado |
-|---|---|---|
-| `PARAMETRO` | Parámetro formal de una función. | No requiere valor constante, conserva su tipo y paso por copia. |
-| `FUNCION` | Función declarada por `<tipo> ID (...)`. | No, conserva retorno y parámetros. |
-| `CONSTANTE_ENTERA` | Literal reconocido como `CTE_E`. | Sí, valor entero. |
-| `CONSTANTE_REAL` | Literal reconocido como `CTE_R`. | Sí, valor real. |
-| `RESERVADA` | Palabra reservada del lenguaje. | No, conserva token asociado. |
-
-
-## 6. Registro de una entrada
+## 5. Registro de una entrada
 
 La implementación mínima que debe utilizar este esquema:
 
 | Campo  | Significado |
 |---|---|
-| `nombre` | nombre efectivo almacenado. Tiene como máximo 20 caracteres. |
-| `categoria` | se indica si el simbolo es una funcion o una variable. |
+| `nombre` | nombre del identificador almacenado. Tiene como máximo 20 caracteres. |
 | `tipo` | tipo de dato del símbolo o tipo de retorno de una función. |
 | `valor` | valor de una constante o literal; ausente para parámetros y funciones. |
 | `longitud` | cantidad de caracteres del `nombre` efectivo. |
-| `alcance` | alcance donde se declaró o almacenó la entrada. |
+| `ambito` | ambito donde se declaró o almacenó la entrada. |
 | `ubicacion` | posición de la declaración o del literal que originó la entrada. |
 
-Para entradas de categoría `FUNCION` se agregan:
 
-| Campo | Significado |
-|---|---|
-| `cantidad_parametros` | uno o dos parametros segùn el diseño |
-| `parametros` | Lista ordenada de referencias a entradas `PARAMETRO`. |
-
-
-### 6.1 Valores y longitudes
+### 5.1 Valores y longitudes
 
 - `nombre` no incluye comillas ni delimitadores.
 - La longitud de un identificador es la longitud del nombre efectivo después del
@@ -152,35 +128,15 @@ Para entradas de categoría `FUNCION` se agregan:
   de acuerdo con R1.
 - Una función no tiene `valor`, su resultado se obtiene durante la ejecución.
 
-## 7. Tabla de palabras reservadas
 
-Las palabras reservadas se mantienen en una tabla fija, separada de los símbolos
-de usuario:
-
-| Lexema | Token |
-|---|---|
-| `inicio` | `INICIO` (103) |
-| `entero` | `ENTERO` (104) |
-| `real` | `REAL` (105) |
-| `si` | `SI` (106) |
-| `sino` | `SINO` (107) |
-| `para` | `PARA` (108) |
-| `imprimir` | `IMPRIMIR` (109) |
-| `retornar` | `RETORNAR` (110) |
-
-La consulta debe ser sensible a mayúsculas. Por ejemplo, `Real` es un `ID`,
-mientras que `real` produce `REAL`. El analizador léxico reconoce primero el
-identificador y luego realiza esta consulta.
-
-
-## 8. Criterios de aceptación
+## 6. Criterios de aceptación
 
 La tabla de símbolos se considera aceptada cuando:
 
-1. toda entrada contiene como mínimo `nombre`, `categoria`, `tipo`, `valor`, `longitud`, `alcance` y `ubicacion`.
+1. toda entrada contiene como mínimo `nombre`, `tipo`, `valor`, `longitud`, `ambito` y `ubicacion`.
 2. el valor está presente para constantes y literales, y es explícitamente
    ausente para funciones y parámetros
-3. distingue variables, parámetros, funciones, constantes, cadenas y reservadas
+3. distingue variables, parámetros y funciones
 4. resuelve nombres desde el ámbito más interno hacia el global
 5. detecta redeclaraciones sólo dentro del ámbito donde ocurren
 6. conserva el tipo `ENTERO` o `REAL` y sus rangos de 32 y 64 bits

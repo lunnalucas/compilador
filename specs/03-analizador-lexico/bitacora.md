@@ -169,3 +169,21 @@ Se agregó una herramienta de prueba y su documentación.
 
 El analizador léxico se puede probar con cualquier programa beta desde la
 consola, la salida identifica cada token de forma clara pero no utiliza los nombres de los tokens definidos en las especificaciones del lenguaje.
+
+
+## Iteración 5 — Rehacer el analizador lexico
+
+**Fecha:** 03/10/2026 · Muse Spark 1.3
+
+**Qué pedí:** En base a todas las especificaciones del repositorio genera el analizador lexico. Se debe recorrer el automata mientras se leen caracteres. Obligatoriamente se tienen que utilizar las matrices para la logica del analizador lexico y devolver los tokens correspondientes en base a un programa de mi lenguaje.
+
+**Qué se hizo:** Genero todas las matrices del analizador lexico. Se creo la funcion get_evento que recibe un caracter y lo traduce a un numero de columna. Se crearon todas las acciones semanticas. Se creo el analizador lexico. Se creo una funcion main para invocar al analizador lexico y devuelve por pantalla todos los tokens de un programa beta.
+
+**Impacto en la spec:** Antes de hacer la iteracion se modificaron las specs del analizador lexico:
+
+- Se agrego pseudocodigo del analizador lexico.
+- Se detallaron los tipos de las matrices. 
+- Se agregaron errores que emiten la fase del analizador lexico.
+- Se agrego un ejemplo de como funciona el analizador lexico cuando recibe un fragmento de programa beta.
+- Se agregaron casos de prueba y resultados esperados.
+- Se detallaron criterios de aceptacion.

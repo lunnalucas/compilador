@@ -22,40 +22,32 @@ yylex(){
   estado = 0     // estado inicial
   // estado_final = -1
   // estado_error = -2
-
-  estado_anterior = 0
-  columna_anterior = 0
-
-  while (estado != -1 and estado != -2){  // mientras no sea fin o error
-    
+  
+  while (estado != -1 and estado != -2) { //armamos el token
     c = leer_caracter()   // guardo caracter leido
 
     columna = get_evento(c)    // numero de columna en base a caracter leido
 
-    estado_anterior = estado
-    columna_anterior = columna
+    proceso[estado][columna]    // ejecutamos la funcion correspondiente segun nuestra matriz de funciones
 
-    proceso[estado][columna]    // ejecutamos la funcion correspondiente
-    
-    estado = nuevo_estado[estado][columna]    // guardamos el nuevo estado
-
+    estado = nuevo_estado[estado][columna]    // guardamos el nuevo estado segun nuestra matriz
+  } //token construido
+  
+  si (unread == 1) {// verificamos segun nuestra matriz de unread si corresponde hacer unread
+    unread(c)
   }
 
-  si (unread[estado_anterior][columna] == 1){ // si la celda indica unread ejecutamos unread()
-          unread(c)
-  }
-
-  si (estado == -2){
+  si (estado == -2){ //
       retornar ERROR_LEXICO
   } 
 
-  retornar token_matriz[estado_anterior][columna_anterior]  // retornamos token
+  retornar token_matriz[estado][columna]  // retornamos token segun la matriz de tokens
 }
 ```
 
 ```c
 
-main(){
+main(){ // para probar el analizador lexico
 
   si (no hay archivo o archivo incorrecto) {
     imprimir("Error, debe modificar el archivo de entrada")
@@ -75,10 +67,10 @@ main(){
     token = yylex()   // llamo al AL y guardo el token
 
     si (token == ERROR_LEXICO){
-      error_detectado = error_detectado + 1
+      error_detectado =  1
     }
     sino {
-      imprimir_token(linea, numero_token, nombre_token, lexema)
+      imprimir_token() //Debe mostrar LINEA, CODIGO DE TOKEN, TOKEN, LEXEMA, POSICION INICIO DEL LEXEMA
     }
   }
   cerrar_archivo(archivo)
@@ -127,10 +119,10 @@ devuelve mediante `unread()` para procesarlo desde el estado inicial.
 | L5 | Longitud | Se conservan los primeros 20 caracteres y se emite advertencia si se supera el límite, el token usa el lexema truncado. |
 | L6 | Números | Sólo se admiten enteros y reales con una única parte decimal. |
 | L7 | Punto | Un punto aislado no es un token válido. Un punto después de dígitos inicia la forma real. |
-| L8 | Cadenas | Se delimitan por `"`, no admiten escapes (`/n, /t, etc`), pueden contener cualquier carácter excepto `"` y EOF y sólo son válidas en el contexto sintáctico de `imprimir`. |
+| L8 | Cadenas | Se delimitan entre `"`, no admiten escapes (`/n, /t, etc`), pueden contener cualquier carácter del lenguaje excepto EOF y sólo son válidas dentro de la funcion `imprimir`. |
 | L9 | Comentarios | Son de bloque, delimitados por `/*` y `*/`, no se anidan y pueden abarcar líneas. |
 | L10 | Espacios | Espacio, tabulador y salto de línea separan lexemas y no producen tokens. |
-| L11 | EOF | Un comentario o cadena sin cierre antes de EOF es error; fuera de esos modos EOF finaliza normalmente. |
+| L11 | EOF | Un comentario o cadena sin cierre antes de EOF es error, fuera de esos modos EOF finaliza normalmente. |
 | L12 | Rango | La forma del número se valida en el lexer y su rango se comprueba al finalizar la constante, según los tipos de diseño. |
 
 La tabla de tokens y sus códigos es la definida en la especificación de diseño:
@@ -246,7 +238,7 @@ lexer ejecuta la acción semántica correspondiente antes de retornar.
 
 ## 7. Matriz de Nuevos Estados
 
-`nuevo_estado[28][22]`
+`int nuevo_estado[28][22]`
 <br>
 `-1`: estado final
 <br>
@@ -257,7 +249,7 @@ lexer ejecuta la acción semántica correspondiente antes de retornar.
 | ESTADO | letra | digito | \=  | !   | <   | \>  | &   | \|  | +   | \-  | \*  | /   | (   | )   | {   | }   | ;   | ,   | .   | "   | ESP-TAB | EOF |
 | ------- | ----- | ------ | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ------- | --- |
 | 0       | 1     | 2      | 4   | 6   | 8   | 10  | 12  | 13  | 14  | 15  | 16  | 17  | 20  | 21  | 22  | 23  | 24  | 25  | \-2 | 26  | 0       | \-1 |
-| 1       | 1     | 2      | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1     | \-1 |
+| 1       | 1     | 1      | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1     | \-1 |
 | 2       | \-1   | 2      | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | 3   | \-1 | \-1     | \-1 |
 | 3       | \-1   | 3      | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1     | \-1 |
 | 4       | \-1   | \-1    | 5   | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1 | \-1     | \-1 |
@@ -289,7 +281,7 @@ lexer ejecuta la acción semántica correspondiente antes de retornar.
 
 ## 8. Matriz de Transiciones
 
-`proceso[28][22]`
+`void proceso[28][22]`
 
 ---
 
@@ -329,6 +321,8 @@ lexer ejecuta la acción semántica correspondiente antes de retornar.
 
 ## 9. Tabla de Unreads
 
+`int unread[28][22]`
+<br>
 `1`: indica unread()
 <br>
 `0`: indica read()
@@ -370,11 +364,12 @@ lexer ejecuta la acción semántica correspondiente antes de retornar.
 
 ## 10. Matriz de tokens
 
+`int token_matriz[28][22]`
+<br>
 `-1`: no devuelve token
 <br>
 `-2`: error
-<br>
-En caso de devolver el token 100 perteneciente a `ID` se espera que luego se analice para verificar si es una palabra reservada y en ese caso asignar el token correspondiente.
+
 
 ---
 
