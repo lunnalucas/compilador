@@ -12,4 +12,4 @@
   * Se vinculó el parser generado (`parser.tab.c`) con el lexer (`lexer.c`) y la función principal.
 * **Decisiones tomadas:** Se probó el parser con un programa `.beta` sintácticamente correcto. La compilación y ejecución fueron exitosas devolviendo el mensaje `Compilacion Sintactica Exitosa`.
 * **Impacto:** Se validó la integración inicial de la gramática en un escenario sin errores entre Flex, Bison y C, respetando los lineamientos globales del lenguaje.
-* **Estado al cierre de la iteración:** El parser funciona correctamente para código válido, pero aún no se ha probado la respuesta ante errores de sintaxis en tiempo de ejecución.
+* **Estado al cierre de la iteración:** El parser funciona correctamente para código válido, pero cuando probamos con uno con error solo dice `Compilacion con error Sintactico`y no dice cual es el error.
