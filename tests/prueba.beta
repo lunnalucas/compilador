@@ -9,7 +9,7 @@ inicio {
 
   resultado = calcularSuma(x,y);
   imprimir ("Resultado truncado");
-  imprimir (resultado);
+  imprimir (resultado)
 
   para (i=6 ; i>=0 & x>5 ; 2){
     si(i == 0){

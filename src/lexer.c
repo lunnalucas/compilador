@@ -572,6 +572,12 @@ int yylex(void) {
         yy_linea = op_start_line; yy_col_ini = op_start_col;
         yy_col_fin = op_start_col + (int)strlen(yy_lexema) - 1;
     }
+
+    if (tok != 0 && tok != ERROR_LEXICO) {
+        printf("%-6d | %-6d | %-12s | %-20s | %-10d\n", 
+           yy_linea, tok, token_nombre(tok), yy_lexema, yy_col_ini);
+    }
+
     return tok;
 }
 

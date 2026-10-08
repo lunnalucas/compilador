@@ -1,8 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "tokens.h"
+#include "parser.tab.h"  // Reemplaza a tokens.h (generado por Bison)
 #include "lexer.h"
+
+// Declaración externa de la función del parser generada por Bison
+extern int yyparse(void);
+
+// Declaración externa de yyerror (su código está en parser.y)
+void yyerror(const char *s);
 
 #ifdef _WIN32
 #include <direct.h>
@@ -26,33 +32,22 @@ int main(int argc, char *argv[]) {
     }
     lexer_init(archivo);
 
-    MKDIR("out");
-    FILE *fout = fopen("out/tokens.txt", "w");
-    if (!fout) { printf("No se pudo crear out/tokens.txt\n"); fclose(archivo); return 1; }
+    // 1. Imprimir encabezado de columnas en la consola
+    printf("%-6s | %-6s | %-12s | %-20s | %-10s\n", "LINEA", "CODIGO", "TOKEN", "LEXEMA", "COL_INICIO");
+    printf("------------------------------------------------------------------------\n");
 
-    fprintf(fout, "LINEA | CODIGO | TOKEN | LEXEMA | COL_INICIO\n");
-    int error_detectado = 0;
-    int token;
-    while ((token = yylex()) != 0) {
-        if (token == ERROR_LEXICO) {
-            error_detectado = 1;
-            fprintf(stderr, "Error lexico E%d en %d:%d: %s (lexema: %s)\n",
-                    lex_error_code, yy_linea, yy_col_ini, lex_error_msg, yy_lexema);
-        } else {
-            fprintf(fout, "%d | %d | %s | %s | %d\n",
-                    yy_linea, token, token_nombre(token), yy_lexema, yy_col_ini);
-            printf("%d | %d | %s | %s | %d\n",
-                   yy_linea, token, token_nombre(token), yy_lexema, yy_col_ini);
-        }
-    }
+    // 2. Iniciar el Analizador Sintáctico (Bison llamará a yylex() internamente)
+    int resultado = yyparse();
+
     fclose(archivo);
-    fclose(fout);
 
-    if (error_detectado == 0) {
-        printf("Compilacion exitosa\n");
+    // 3. Evaluar resultado de la compilación sintáctica
+    if (resultado == 0) {
+        printf("\n Compilacion Sintactica Exitosa \n");
         mostrarTS();
     } else {
-        printf("Analisis lexico completo con errores\n");
+        printf("\n Error Sintactico en la compilacion \n");
     }
+
     return 0;
 }
