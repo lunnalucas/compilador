@@ -41,3 +41,4 @@
   * Al probar `tests/prueba.beta` con la falta de `;` en la línea 12, el compilador emitió limpiamente:
     `[ERROR SINTÁCTICO] Línea 14, Columna 3: syntax error, unexpected PARA, expecting P_COMA (cerca de 'para')`
     seguido de `Error Sintactico en la compilacion` en la salida principal, finalizando exitosamente el ciclo de pruebas de la fase sintáctica.
+  - **Pendiente de verificación:** Queda pendiente para la próxima iteración implementar un mecanismo de visualización o recorrido (impresión del AST) para verificar en consola que la estructura en memoria se construya correctamente antes de avanzar a las etapas de análisis semántico y código intermedio.
