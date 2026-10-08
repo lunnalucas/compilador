@@ -262,3 +262,10 @@ fueron emitidos antes.
 | E9 | definición o llamada con más de 2 parámetros/argumentos | `Error E9: la funcion 'f' supera el maximo de 2 parametros/argumentos` |
 | E10 | definición de función sin parámetros (`f()`) | `Error E10: la funcion 'f' debe tener 1 o 2 parametros` |
 
+## 8. Criterios de Aceptación
+El Analizador Sintáctico se considerará aceptado cuando:
+1. El archivo `src/parser.y` compile limpiamente con Bison (`bison -d src/parser.y -o src/parser.tab.c`) generando las cabeceras requeridas sin conflictos.
+2. Reconozca la totalidad de las reglas gramaticales BNF (§6) consumiendo iterativamente los tokens `100–132` desde `yylex()`.
+3. Construya dinámicamente el Árbol Sintáctico Abstracto (AST) anotando las conversiones de tipos necesarias (`ENTERO_A_REAL` y `REAL_A_ENTERO`).
+4. Gestione correctamente la creación y cierre de ámbitos en la Tabla de Símbolos.
+5. Reporte de forma precisa los errores sintácticos descritos en la sección 7 (`E5`, `E9` y `E10`)
