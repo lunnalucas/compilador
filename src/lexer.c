@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-#include "tokens.h"
+#include "parser.tab.h"
 #include "lexer.h"
 
 /* ============ estado persistente ============ */
@@ -14,6 +14,8 @@ long yy_ival = 0;
 double yy_fval = 0.0;
 int lex_error_code = 0;
 char lex_error_msg[256] = {0};
+int yy_prev_token_line = 0;
+int yy_prev_token_col_fin = 0;
 
 static FILE *lex_fp = NULL;
 static int cur_line = 1, cur_col = 1;     /* posición del próximo char */
@@ -30,11 +32,75 @@ static int op_c0 = 0, op_start_line = 1, op_start_col = 1;
 static int tok_pending = -1;
 static int skip_auto_unread = 0;
 static int cur_estado_global = 0;
+static int ultimo_token_linea = 0;
+static int ultimo_token_col_fin = 0;
+
+static ErrorAnalisis *errores_analisis = NULL;
+static size_t errores_analisis_n = 0;
+static size_t errores_analisis_cap = 0;
+static int error_memoria_reportado = 0;
 
 /* TS mínima: identificadores únicos (truncados) vistos */
 #define TS_MAX 2048
 static char ts_ids[TS_MAX][21];
 static int ts_n = 0;
+
+void limpiar_errores_analisis(void) {
+    free(errores_analisis);
+    errores_analisis = NULL;
+    errores_analisis_n = 0;
+    errores_analisis_cap = 0;
+    error_memoria_reportado = 0;
+}
+
+void registrar_error_analisis(const char *categoria, const char *codigo,
+                              int linea, int columna, const char *lexema,
+                              const char *mensaje) {
+    if (errores_analisis_n > 0) {
+        const ErrorAnalisis *ultimo = &errores_analisis[errores_analisis_n - 1];
+        if (ultimo->linea == linea && ultimo->columna == columna)
+            return;
+    }
+
+    if (errores_analisis_n == errores_analisis_cap) {
+        size_t nueva_cap = errores_analisis_cap == 0 ? 16 : errores_analisis_cap * 2;
+        ErrorAnalisis *nuevos = realloc(errores_analisis, nueva_cap * sizeof(*nuevos));
+        if (!nuevos) {
+            if (!error_memoria_reportado) {
+                fprintf(stderr, "Error grave: no se pudo ampliar la lista de errores.\n");
+                error_memoria_reportado = 1;
+            }
+            return;
+        }
+        errores_analisis = nuevos;
+        errores_analisis_cap = nueva_cap;
+    }
+
+    ErrorAnalisis *error = &errores_analisis[errores_analisis_n++];
+    snprintf(error->categoria, sizeof(error->categoria), "%s",
+             categoria ? categoria : "ANALISIS");
+    snprintf(error->codigo, sizeof(error->codigo), "%s",
+             codigo ? codigo : "ERROR");
+    error->linea = linea;
+    error->columna = columna;
+    snprintf(error->lexema, sizeof(error->lexema), "%s", lexema ? lexema : "");
+    snprintf(error->mensaje, sizeof(error->mensaje), "%s", mensaje ? mensaje : "");
+}
+
+size_t cantidad_errores_analisis(void) {
+    return errores_analisis_n;
+}
+
+const ErrorAnalisis *obtener_error_analisis(size_t indice) {
+    return indice < errores_analisis_n ? &errores_analisis[indice] : NULL;
+}
+
+static void guardar_error_lexico(void) {
+    char codigo[24];
+    snprintf(codigo, sizeof(codigo), "E%d", lex_error_code);
+    registrar_error_analisis("LEXICO", codigo, yy_linea, yy_col_ini,
+                             yy_lexema, lex_error_msg);
+}
 
 /* ============ utilidades de lectura ============ */
 static int leer_caracter(void) {
@@ -60,6 +126,11 @@ void lexer_init(FILE *f) {
     cur_line = 1; cur_col = 1; last_line = 1; last_col = 1;
     pb_valid = 0; lex_len = 0; tok_pending = -1;
     lex_error_code = 0; lex_error_msg[0] = '\0';
+    yy_linea = 1; yy_col_ini = 1; yy_col_fin = 1; yy_lexema[0] = '\0';
+    yy_prev_token_line = 0; yy_prev_token_col_fin = 0;
+    ultimo_token_linea = 0; ultimo_token_col_fin = 0;
+    ts_n = 0;
+    limpiar_errores_analisis();
 }
 
 const char *token_nombre(int tok) {
@@ -345,7 +416,9 @@ void ERROR(int c) {
     if (c == EOF) snprintf(frag, sizeof(frag), "EOF");
     else if (c == '\n') snprintf(frag, sizeof(frag), "\\n");
     else snprintf(frag, sizeof(frag), "%c", (char)c);
-    yy_linea = last_line; yy_col_ini = last_col; yy_col_fin = last_col;
+    yy_linea = c == EOF ? cur_line : last_line;
+    yy_col_ini = c == EOF ? cur_col : last_col;
+    yy_col_fin = yy_col_ini;
     strncpy(yy_lexema, frag, sizeof(yy_lexema) - 1);
     if (cur_estado_global == 0 && c == '.') {
         lex_error_code = 20;
@@ -498,87 +571,145 @@ static const int token_matriz[28][22] = {
 /* ============ yylex ============ */
 int yylex(void) {
     if (!lex_fp) return 0;
-    tok_pending = -1;
-    lex_error_code = 0; lex_error_msg[0] = '\0';
-    skip_auto_unread = 0;
+    for (;;) {
+        tok_pending = -1;
+        lex_error_code = 0;
+        lex_error_msg[0] = '\0';
+        yy_lexema[0] = '\0';
+        skip_auto_unread = 0;
 
-    int estado = 0;
-    int c = 0, col = 0;
-    int prev_estado = 0, prev_col = 0;
-    int tuvo_prev = 0;
+        int estado = 0;
+        int c = 0, col = 0;
+        int prev_estado = 0, prev_col = 0;
+        int tuvo_prev = 0;
 
-    while (estado != -1 && estado != -2) {
-        c = leer_caracter();
-        col = get_evento(c);
-        if (col == -1) { /* OTRO */
-            if (estado == 26) { agregar_salida(c); continue; }
+        while (estado != -1 && estado != -2) {
+            c = leer_caracter();
+            col = get_evento(c);
+            if (col == -1) {
+                if (estado == 26) {
+                    agregar_salida(c);
+                    continue;
+                }
+                cur_estado_global = estado;
+                ERROR(c);
+                estado = -2;
+                break;
+            }
+
+            if (estado == 0 && col >= 0 && col <= 19) {
+                op_c0 = c;
+                op_start_line = last_line;
+                op_start_col = last_col;
+                tok_line_ini = last_line;
+                tok_col_ini = last_col;
+            }
+
             cur_estado_global = estado;
-            ERROR(c);
-            estado = -2;
-            tuvo_prev = 0;
-            break;
+            proceso[estado][col](c);
+            if (lex_error_code != 0) {
+                if (!skip_auto_unread && unread_mat[estado][col] == 1)
+                    unread_char(c);
+                prev_estado = estado;
+                prev_col = col;
+                tuvo_prev = 1;
+                estado = -2;
+                break;
+            }
+
+            prev_estado = estado;
+            prev_col = col;
+            tuvo_prev = 1;
+            estado = nuevo_estado[estado][col];
         }
-        if (estado == 0 && col >= 0 && col <= 19) {
-            op_c0 = c; op_start_line = last_line; op_start_col = last_col;
-            tok_line_ini = last_line; tok_col_ini = last_col;
+
+        if (estado == -2) {
+            if (lex_error_code == 0) {
+                lex_error_code = 1;
+                snprintf(lex_error_msg, sizeof(lex_error_msg),
+                         "Caracter no perteneciente al alfabeto lexico");
+                if (yy_lexema[0] == '\0') {
+                    yy_linea = last_line;
+                    yy_col_ini = last_col;
+                    yy_col_fin = last_col;
+                    if (c == EOF)
+                        snprintf(yy_lexema, sizeof(yy_lexema), "EOF");
+                    else if (c == '\n')
+                        snprintf(yy_lexema, sizeof(yy_lexema), "\\n");
+                    else
+                        snprintf(yy_lexema, sizeof(yy_lexema), "%c", (char)c);
+                }
+            }
+            if (cur_estado_global == 6 && c != EOF && c != '=')
+                unread_char(c);
+            guardar_error_lexico();
+            if (c == EOF) return 0;
+            continue;
         }
-        cur_estado_global = estado;
-        proceso[estado][col](c);
-        if (lex_error_code != 0) { /* fin_entero/fin_real detectó E2/E12/E20 */
-            prev_estado = estado; prev_col = col; tuvo_prev = 1;
-            estado = -2;
-            break;
+
+        if (!tuvo_prev) return 0;
+        if (!skip_auto_unread && unread_mat[prev_estado][prev_col] == 1)
+            unread_char(c);
+
+        if (lex_error_code != 0) {
+            guardar_error_lexico();
+            if (c == EOF) return 0;
+            continue;
         }
-        prev_estado = estado; prev_col = col; tuvo_prev = 1;
-        estado = nuevo_estado[estado][col];
+
+        int tok = tok_pending != -1
+            ? tok_pending
+            : token_matriz[prev_estado][prev_col];
+        if (tok == -1) return 0;
+        if (tok == -2) {
+            lex_error_code = 1;
+            snprintf(lex_error_msg, sizeof(lex_error_msg),
+                     "Caracter no perteneciente al alfabeto lexico");
+            yy_linea = last_line;
+            yy_col_ini = last_col;
+            yy_col_fin = last_col;
+            if (c == EOF)
+                snprintf(yy_lexema, sizeof(yy_lexema), "EOF");
+            else
+                snprintf(yy_lexema, sizeof(yy_lexema), "%c", (char)c);
+            guardar_error_lexico();
+            if (c == EOF) return 0;
+            continue;
+        }
+
+        if (tok == ID || tok == INICIO || tok == ENTERO || tok == REAL ||
+            tok == SI || tok == SINO || tok == PARA || tok == IMPRIMIR ||
+            tok == RETORNAR || tok == CTE_E || tok == CTE_R || tok == CADENA) {
+            lex_buf[lex_len] = '\0';
+            snprintf(yy_lexema, sizeof(yy_lexema), "%s", lex_buf);
+            yy_linea = tok_line_ini;
+            yy_col_ini = tok_col_ini;
+            yy_col_fin = tok_col_ini + (int)strlen(yy_lexema) - 1;
+            if (tok == CADENA) yy_col_fin += 2;
+        } else {
+            const char *f = lexema_fijo(tok);
+            snprintf(yy_lexema, sizeof(yy_lexema), "%s", f ? f : "");
+            yy_linea = op_start_line;
+            yy_col_ini = op_start_col;
+            yy_col_fin = op_start_col + (int)strlen(yy_lexema) - 1;
+        }
+
+        if (tok == ID || tok == CADENA)
+            snprintf(yylval.cadena, sizeof(yylval.cadena), "%s", yy_lexema);
+        else if (tok == CTE_E)
+            yylval.val_int = (int)yy_ival;
+        else if (tok == CTE_R)
+            yylval.val_real = yy_fval;
+
+        yy_prev_token_line = ultimo_token_linea;
+        yy_prev_token_col_fin = ultimo_token_col_fin;
+        ultimo_token_linea = yy_linea;
+        ultimo_token_col_fin = yy_col_fin;
+
+        printf("%-6d | %-6d | %-12s | %-20s | %-10d\n",
+               yy_linea, tok, token_nombre(tok), yy_lexema, yy_col_ini);
+        return tok;
     }
-
-    if (estado == -2) return ERROR_LEXICO;
-
-    /* estado == -1: token armado */
-    if (!tuvo_prev) return 0;
-    if (!skip_auto_unread && unread_mat[prev_estado][prev_col] == 1) unread_char(c);
-
-    if (lex_error_code != 0) return ERROR_LEXICO;
-
-    int tok = (tok_pending != -1) ? tok_pending : token_matriz[prev_estado][prev_col];
-    if (tok == -1) return 0; /* EOF normal desde estado 0 */
-    if (tok == -2) {
-        lex_error_code = 1;
-        snprintf(lex_error_msg, sizeof(lex_error_msg), "Caracter no perteneciente al alfabeto lexico");
-        return ERROR_LEXICO;
-    }
-
-    /* publicar yy_lexema y ubicación */
-    if (tok == ID || tok == INICIO || tok == ENTERO || tok == REAL || tok == SI ||
-        tok == SINO || tok == PARA || tok == IMPRIMIR || tok == RETORNAR) {
-        lex_buf[lex_len] = '\0';
-        strncpy(yy_lexema, lex_buf, sizeof(yy_lexema) - 1);
-        yy_linea = tok_line_ini; yy_col_ini = tok_col_ini;
-        yy_col_fin = tok_col_ini + (int)strlen(yy_lexema) - 1;
-    } else if (tok == CTE_E || tok == CTE_R) {
-        lex_buf[lex_len] = '\0';
-        strncpy(yy_lexema, lex_buf, sizeof(yy_lexema) - 1);
-        yy_linea = tok_line_ini; yy_col_ini = tok_col_ini;
-        yy_col_fin = tok_col_ini + (int)strlen(yy_lexema) - 1;
-    } else if (tok == CADENA) {
-        lex_buf[lex_len] = '\0';
-        strncpy(yy_lexema, lex_buf, sizeof(yy_lexema) - 1);
-        yy_linea = tok_line_ini; yy_col_ini = tok_col_ini;
-        yy_col_fin = tok_col_ini + (int)strlen(yy_lexema) + 1; /* incluye comillas */
-    } else {
-        const char *f = lexema_fijo(tok);
-        strncpy(yy_lexema, f ? f : "", sizeof(yy_lexema) - 1);
-        yy_linea = op_start_line; yy_col_ini = op_start_col;
-        yy_col_fin = op_start_col + (int)strlen(yy_lexema) - 1;
-    }
-
-    if (tok != 0 && tok != ERROR_LEXICO) {
-        printf("%-6d | %-6d | %-12s | %-20s | %-10d\n", 
-           yy_linea, tok, token_nombre(tok), yy_lexema, yy_col_ini);
-    }
-
-    return tok;
 }
 
 void mostrarTS(void) {
