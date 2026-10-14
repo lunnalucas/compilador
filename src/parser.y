@@ -18,6 +18,7 @@ extern char yy_lexema[8192];
 /* Prototipos de funciones externas del Léxico y la Tabla de Símbolos */
 int yylex(void);
 void yyerror(const char *s);
+static void recuperar_sentencia(int linea);
 
 /* Simulación/Prototipos de la Tabla de Símbolos (TS) */
 int obtener_tipo_ts(const char* lexema); /* Devuelve 104 (ENTERO) o 105 (REAL) */
@@ -212,7 +213,7 @@ sentencia
     | salida      { $$ = $1; }
     | retorno     { $$ = $1; }
     | error {
-        if (yychar != YYEOF) yyclearin;
+        recuperar_sentencia(yy_linea);
         yyerrok;
         $$ = NULL;
     }
@@ -569,16 +570,42 @@ int es_tipo_entero_ts(const char* lexema) {
 
 /* Manejador de errores por defecto de Bison */
 
+static void recuperar_sentencia(int linea) {
+    while (yychar != YYEMPTY && yychar != 0) {
+        if (yychar == P_COMA) {
+            if (yy_linea == linea) yychar = YYEMPTY;
+            return;
+        }
+        if (yychar == LLAVE_CIERRA || yychar == ID ||
+            yychar == SI || yychar == PARA || yychar == IMPRIMIR ||
+            yychar == RETORNAR || yychar == ENTERO || yychar == REAL)
+            return;
+        if (yy_linea != linea) return;
+        yychar = yylex();
+    }
+}
+
 void yyerror(const char *s) {
     int linea = yy_linea;
     int columna = yy_col_ini;
     const char *lex = yy_lexema[0] != '\0' ? yy_lexema : "DESCONOCIDO";
+    size_t cantidad = cantidad_errores_analisis();
 
     if (s && strstr(s, "P_COMA") != NULL &&
         yy_prev_token_line > 0 &&
         yy_prev_token_col_fin > 0) {
         linea = yy_prev_token_line;
         columna = yy_prev_token_col_fin + 1;
+    }
+
+    if (cantidad > 0) {
+        const ErrorAnalisis *ultimo = obtener_error_analisis(cantidad - 1);
+        if (ultimo &&
+            strcmp(ultimo->categoria, "SINTACTICO") == 0 &&
+            ultimo->linea == linea &&
+            ultimo->columna == columna) {
+            return;
+        }
     }
 
     registrar_error_analisis("SINTACTICO", "ERR_SYNTAX",

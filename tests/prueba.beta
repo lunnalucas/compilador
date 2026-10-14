@@ -15,7 +15,7 @@ inicio {
     si(i == 0){
       imprimir("Llegamos a cero");
     }
-    sino{
+    sino
       imprimir("Valor actual de i");
       imprimir(i);
     }
