@@ -10,7 +10,7 @@
 
 ---
 
-## 1- Objetivo
+## 1. Objetivo
 
 Diseñar e implementar el Analizador Sintáctico (Parser) para el lenguaje BETA
 utilizando **Yacc / Bison** e integrado con el Analizador Léxico previo
@@ -20,7 +20,7 @@ gramaticales del lenguaje BETA y construir la representación intermedia basada
 en un **Árbol Sintáctico Abstracto (AST)** con nodos anotados de conversión de
 tipos (Entero/Real).
 
-## 2- Alcance
+## 2. Alcance
 * **Estructura Gramatical:** Reconocimiento de todas las reglas BNF del lenguaje BETA:
   * Declaraciones de variables (`entero`, `real`).
   * Estructuras de control (`si`, `sino`, `para`).
@@ -32,7 +32,7 @@ tipos (Entero/Real).
 * **Integración:** Interfaz directa entre `yyparse()` y el consumidor del lexer (`yylex()`).
 * **Fuera del alcance:** La generación final de código Assembler y la ejecución en tiempo de ejecución (contemplado en etapas posteriores).
 
-## 3- Entradas / Salidas
+## 3. Entradas / Salidas
 
 | Elemento | Contrato |
 |---|---|
@@ -50,7 +50,7 @@ Algunos resultados esperados:
    válida los exige.
 4. Tras EOF, `yylex()` retorna `0` sin avanzar; `yyparse()` termina.
 
-## 4- Reglas y decisiones de diseño
+## 4. Reglas y decisiones de diseño
 
 | # | Decisión | Valor / justificación |
 |---|---|---|
@@ -60,7 +60,7 @@ Algunos resultados esperados:
 | S4 | Funciones | 1 o 2 parametros. 0 parametros o 3+ parametros es E10/E9. `inicio` es `<principal> ::= INICIO bloque_i`, sin parametros ni retorno; solo puede aparecer una vez (§6.3). |
 | S5 | `imprimir` | Lista vacía `imprimir()` es E5. |
 
-## 5- Tokens en Bison
+## 5. Tokens en Bison
 
 ```yacc
 %token ID 100 CTE_E 101 CTE_R 102
@@ -73,7 +73,107 @@ Algunos resultados esperados:
 %token P_COMA 128 COMA 129 PUNTO 130 COMILLA 131 CADENA 132
 ```
 
-## 6- Gramática Bison (copia de `01-diseno/spec.md §6`)
+## 6. Precedencia y asociatividad
+
+```
+%left OR
+%left AND
+%nonassoc IGUAL DISTINTO MENOR MAYOR MENOR_IGUAL MAYOR_IGUAL
+%left SUMA RESTA
+%left PRODUCTO DIVISION
+%nonassoc SI
+%nonassoc SINO
+```
+
+## 7. Tipos y estructura del arbol
+
+```
+// ==================================================================
+// ====================== ESTRUCTURA DEL ARBOL ======================
+// ==================================================================
+
+typedef enum {
+    TIPO_ENTERO,
+    TIPO_REAL,
+    TIPO_NULL
+}TipoDato;
+
+typedef enum {
+    NODO_PROGRAMA,          //nodo raiz
+    NODO_UNIDAD, 
+    NODO_BLOQUE, 
+    NODO_DECLARACION,
+    NODO_ASIGNACION, 
+    NODO_SELECCION, 
+    NODO_BUCLE, 
+    NODO_SALIDA,
+    NODO_RETORNO, 
+    NODO_INVOCACION, 
+    NODO_COMPARADOR,        //nodo de comparadores <, >, <=, >=, !=, ==
+    NODO_OPERACION,         //nodo operaciones aritmeticas
+    NODO_LOGICO,            //nodo operaciones logicas
+    NODO_ENTERO,
+    NODO_REAL,
+    NODO_ID,
+    NODO_CASTEAR_TRUNCAR    //nodo para castear o truncar los tipos de datos
+} TipoNodo;
+
+
+typedef struct ASTNodo {
+    TipoNodo tipo_nodo;
+    union {
+        struct {
+            char* lexema;
+            ASTNodo* hijo_izq;
+            ASTNodo* hijo_der;
+        } nodo;
+        struct {
+            TipoDato tipo_dato;
+            union {
+                char* lexema;
+                int valor_entero;
+                float valor_real;
+            }
+        } hoja;
+    }
+} ASTNodo;
+
+// ==================================================================
+// ====================== ACCIONES SEMANTICAS =======================
+// ==================================================================
+
+ASTNodo* crear_nodo(tipo_nodo, contenido, nodo_hijo_izq, nodo_hijo_der) { }
+ASTNodo* crear_hoja(tipo_nodo, tipo_dato, contenido) { }
+ASTNodo* castear_truncar_nodo(tipo_nodo, nodo, tipo_objetivo) { }
+
+// =============================================================================
+// ====================== TIPOS DE TOKENS Y NO TERMINALES ======================
+// =============================================================================
+
+%union {
+    ASTNodo* nodo;
+    int valor_entero;
+    float valor_real;
+    char* valor_cadena;
+    char id[21];            //truncado a 20
+    int tipo;               // ENTERO O REAL segun numero de token
+}
+%token <id> ID
+%token <valor_entero> CTE_E
+%token <valor_real> CTE_R
+%token <valor_cadena> CADENA
+%type <nodo> programa unidades unidad principal parametros bloque bloque_i
+%type <nodo> sentencias sentencia sentencias_i sentencia_i
+%type <nodo> declaracion ids asignacion invocacion seleccion condicional
+%type <nodo> t_condicional f_condicional condicion comparador bucle control
+%type <nodo> salida elementos_salida elemento_salida retorno argumentos
+%type <nodo> expresion termino factor tipo
+
+
+%start programa             //inicio de la gramatica
+```
+
+## 8. Gramática Bison (copia de `01-diseno/spec.md §6`)
 
 Nota: terminales en MAYÚSCULAS, `|` alternativas.
 
@@ -242,7 +342,7 @@ tipo
     ;
 ```
 
-### 6.1 Restricciones sintacticas
+### 8.1 Restricciones sintacticas
 
 1. `principal` (`inicio`) aparece exactamente una vez y al final del archivo.
 2. No hay funciones anidadas: `unidad` solo aparece en `unidades` a nivel
@@ -251,7 +351,7 @@ tipo
    (`inicio` no retorna, no tiene tipo).
 4. `inicio` no lleva parámetros ni tipo de retorno.
 
-## 7- Errores de esta fase
+## 9 Errores de esta fase
 
 Solo E5, E9, E10 en esta etapa. Los léxicos (E1–E4, E12, E18–E20) ya
 fueron emitidos antes.
@@ -262,7 +362,7 @@ fueron emitidos antes.
 | E9 | definición o llamada con más de 2 parámetros/argumentos | `Error E9: la funcion 'f' supera el maximo de 2 parametros/argumentos` |
 | E10 | definición de función sin parámetros (`f()`) | `Error E10: la funcion 'f' debe tener 1 o 2 parametros` |
 
-## 8. Criterios de Aceptación
+## 10. Criterios de Aceptación
 El Analizador Sintáctico se considerará aceptado cuando:
 1. El archivo `src/parser.y` compile limpiamente con Bison (`bison -d src/parser.y -o src/parser.tab.c`) generando las cabeceras requeridas sin conflictos.
 2. Reconozca la totalidad de las reglas gramaticales BNF (§6) consumiendo iterativamente los tokens `100–132` desde `yylex()`.
