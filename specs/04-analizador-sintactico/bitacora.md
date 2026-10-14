@@ -43,3 +43,24 @@
     `[ERROR SINTÁCTICO] Línea 14, Columna 3: syntax error, unexpected PARA, expecting P_COMA (cerca de 'para')`
     seguido de `Error Sintactico en la compilacion` en la salida principal, finalizando exitosamente el ciclo de pruebas de la fase sintáctica.
   - **Pendiente de verificación:** Queda pendiente para la próxima iteración implementar un mecanismo de visualización o recorrido (impresión del AST) para verificar en consola que la estructura en memoria se construya correctamente antes de avanzar a las etapas de análisis semántico y código intermedio.
+ 
+### Iteración 4 — Requerimiento de Detección Multierror y Lectura Completa hasta EOF
+**Fecha:** 14/10/2026 · **Modelo:** Copilot
+
+- **Qué pedí:** 
+  Solicité implementar un sistema completo de recolección de múltiples errores (léxicos y sintácticos) que procese el archivo `.beta` completo hasta el final (`EOF`) sin abortar en la primera falla. Pedí modificar el lexer para que no corte al encontrar un error léxico, definir la resincronización en la regla de sentencias en el parser usando una regla de `error` para reanudar la lectura, y ajustar `yyerror()` para registrar la línea exacta del fallo sin interrumpir la ejecución.
+
+- **Qué se hizo:**
+  - **Analizador Léxico (`src/lexer.l`):** Se ajustó el manejo de errores léxicos para registrar la falla y continuar entregando tokens a la gramática hasta llegar a `EOF`.
+  - **Analizador Sintáctico (`src/parser.y`):** Se agregó la regla de recuperación por error a nivel de `sentencia` para que, tras detectar una falla, el parser continúe procesando las siguientes instrucciones.
+  - **Manejador de Errores (`src/main.c` / `yyerror`):** Se adaptó la función `yyerror()` para almacenar múltiples errores en una lista global en lugar de detener el programa en la primera llamada.
+
+- **Decisiones tomadas y fallas detectadas:**
+  - **Avance alcanzado:** Al probar `tests/prueba.beta`, se confirmó que el lexer y el parser lograron recorrer el archivo de principio a fin, imprimiendo la tabla de tokens completa hasta la línea final (línea 23).
+  - **Problema detectado:** El primer error sintáctico fue detectado con precisión (falta de `;` antes de la palabra `para`), pero la resincronización descartó el token `para` con el que se dio cuenta de la falla. Al eliminar ese token válido, el encabezado del bucle quedó incompleto, provocando que la mayor parte del código posterior se interpretara como erróneo y generando una ráfaga de falsos positivos en esa misma estructura.
+
+- **Impacto:** Se logró el objetivo principal de procesar el archivo completo hasta `EOF`, pero la estrategia de recuperación destruye el token con el que detecta la falla, rompiendo las estructuras válidas que le siguen.
+
+- **Estado al cierre de la iteración:**
+  - El compilador no aborta y analiza todo el archivo, pero la resincronización actual corrompe la lectura inmediatamente posterior al primer error.
+  - **Queda pendiente:** Ajustar la regla de recuperación para que conserve el token donde se detectó el error y permita reanudar el análisis desde esa misma palabra reservada o instrucción.
