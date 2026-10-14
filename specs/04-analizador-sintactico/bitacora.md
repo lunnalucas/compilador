@@ -48,7 +48,7 @@
 **Fecha:** 14/10/2026 · **Modelo:** Copilot
 
 - **Qué pedí:** 
-  Solicité implementar un sistema completo de recolección de múltiples errores (léxicos y sintácticos) que procese el archivo `.beta` completo hasta el final (`EOF`) sin abortar en la primera falla. Pedí modificar el lexer para que no corte al encontrar un error léxico, definir la resincronización en la regla de sentencias en el parser usando una regla de `error` para reanudar la lectura, y ajustar `yyerror()` para registrar la línea exacta del fallo sin interrumpir la ejecución.
+  @workspace Implementa un sistema completo de recolección de múltiples errores (léxicos y sintácticos) que procese el archivo `.beta` completo hasta el final (`EOF`) sin abortar en la primera falla. Pedí modificar el lexer para que no corte al encontrar un error léxico, definir la resincronización en la regla de sentencias en el parser usando una regla de `error` para reanudar la lectura, y ajustar `yyerror()` para registrar la línea exacta del fallo sin interrumpir la ejecución.
 
 - **Qué se hizo:**
   - **Analizador Léxico (`src/lexer.l`):** Se ajustó el manejo de errores léxicos para registrar la falla y continuar entregando tokens a la gramática hasta llegar a `EOF`.
