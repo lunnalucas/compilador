@@ -41,12 +41,26 @@ int main(int argc, char *argv[]) {
 
     fclose(archivo);
 
-    // 3. Evaluar resultado de la compilación sintáctica
-    if (resultado == 0) {
+    // 3. Mostrar en conjunto los errores léxicos y sintácticos.
+    size_t cantidad_errores = cantidad_errores_analisis();
+    if (resultado == 0 && cantidad_errores == 0) {
         printf("\n Compilacion Sintactica Exitosa \n");
         mostrarTS();
     } else {
-        printf("\n Error Sintactico en la compilacion \n");
+        printf("\n Errores encontrados durante el analisis (%zu):\n",
+               cantidad_errores);
+        for (size_t i = 0; i < cantidad_errores; i++) {
+            const ErrorAnalisis *error = obtener_error_analisis(i);
+            printf("[%s %s] Linea %d, Columna %d: %s",
+                   error->categoria, error->codigo, error->linea,
+                   error->columna, error->mensaje);
+            if (error->lexema[0] != '\0')
+                printf(" (cerca de '%s')", error->lexema);
+            printf("\n");
+        }
+        if (cantidad_errores == 0)
+            printf("El parser no pudo completar el analisis (codigo %d).\n",
+                   resultado);
     }
 
     return 0;

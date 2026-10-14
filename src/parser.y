@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lexer.h"
 
 // Declaración de variables globales que vienen de lexer.c
 extern int yy_linea;
@@ -136,8 +137,9 @@ unidad
     }
     | tipo ID PAR_ABRE PAR_CIERRA bloque {
         /* Error E10: Definición de función sin parámetros */
-        fprintf(stderr, "Error E10: La funcion '%s' debe tener entre 1 y 2 parametros.\n", $2);
-        YYERROR;
+        registrar_error_analisis("SINTACTICO", "E10", yy_linea, yy_col_ini,
+                                 $2, "La funcion debe tener entre 1 y 2 parametros.");
+        $$ = crear_nodo(N_PROGRAMA, $2, NULL, $5);
     }
     ;
 
@@ -153,43 +155,51 @@ parametros
     }
     | tipo ID COMA tipo ID COMA tipo ID {
         /* Error E9: Definición de función con más de 2 parámetros */
-        fprintf(stderr, "Error E9: La funcion supera el maximo permitido de 2 parametros.\n");
-        YYERROR;
+        registrar_error_analisis("SINTACTICO", "E9", yy_linea, yy_col_ini,
+                                 yy_lexema, "La funcion supera el maximo permitido de 2 parametros.");
+        NodoAST *p1 = crear_nodo(N_DECLARACION, $2, $1, NULL);
+        NodoAST *p2 = crear_nodo(N_DECLARACION, $5, $4, NULL);
+        p1->sig = p2;
+        $$ = p1;
     }
     ;
 
 bloque
     : LLAVE_ABRE sentencias LLAVE_CIERRA { $$ = crear_nodo(N_BLOQUE, "BLOQUE", $2, NULL); }
+    | LLAVE_ABRE LLAVE_CIERRA { $$ = crear_nodo(N_BLOQUE, "BLOQUE", NULL, NULL); }
     ;
 
 bloque_i
     : LLAVE_ABRE sentencias_i LLAVE_CIERRA { $$ = crear_nodo(N_BLOQUE, "BLOQUE_INICIO", $2, NULL); }
+    | LLAVE_ABRE LLAVE_CIERRA { $$ = crear_nodo(N_BLOQUE, "BLOQUE_INICIO", NULL, NULL); }
     ;
 
 sentencias_i
     : sentencias_i sentencia_i {
-        NodoAST* aux = $1;
-        while (aux->sig != NULL) aux = aux->sig;
-        aux->sig = $2;
-        $$ = $1;
+        if (!$1) $$ = $2;
+        else {
+            NodoAST* aux = $1;
+            while (aux->sig != NULL) aux = aux->sig;
+            aux->sig = $2;
+            $$ = $1;
+        }
     }
     | sentencia_i { $$ = $1; }
     ;
 
 sentencia_i
-    : declaracion { $$ = $1; }
-    | asignacion  { $$ = $1; }
-    | seleccion   { $$ = $1; }
-    | bucle       { $$ = $1; }
-    | salida      { $$ = $1; }
+    : sentencia { $$ = $1; }
     ;
 
 sentencias
     : sentencias sentencia {
-        NodoAST* aux = $1;
-        while (aux->sig != NULL) aux = aux->sig;
-        aux->sig = $2;
-        $$ = $1;
+        if (!$1) $$ = $2;
+        else {
+            NodoAST* aux = $1;
+            while (aux->sig != NULL) aux = aux->sig;
+            aux->sig = $2;
+            $$ = $1;
+        }
     }
     | sentencia { $$ = $1; }
     ;
@@ -201,6 +211,11 @@ sentencia
     | bucle       { $$ = $1; }
     | salida      { $$ = $1; }
     | retorno     { $$ = $1; }
+    | error {
+        if (yychar != YYEOF) yyclearin;
+        yyerrok;
+        $$ = NULL;
+    }
     ;
 
 declaracion
@@ -273,8 +288,10 @@ argumentos
     | expresion { $$ = $1; }
     | expresion COMA expresion COMA expresion {
         /* Error E9: Invocación a función con más de 2 argumentos */
-        fprintf(stderr, "Error E9: La llamada a la funcion '%s' supera el maximo de 2 argumentos.\n", "funcion");
-        YYERROR;
+        registrar_error_analisis("SINTACTICO", "E9", yy_linea, yy_col_ini,
+                                 yy_lexema, "La llamada a la funcion supera el maximo de 2 argumentos.");
+        $1->sig = $3;
+        $$ = $1;
     }
     ;
 
@@ -351,8 +368,9 @@ salida
     }
     | IMPRIMIR PAR_ABRE PAR_CIERRA P_COMA {
         /* Error E5: La función imprimir() requiere parámetros */
-        fprintf(stderr, "Error sintactico E5: La funcion 'imprimir' requiere parametros.\n");
-        YYERROR;
+        registrar_error_analisis("SINTACTICO", "E5", yy_linea, yy_col_ini,
+                                 yy_lexema, "La funcion 'imprimir' requiere parametros.");
+        $$ = crear_nodo(N_SALIDA, "IMPRIMIR", NULL, NULL);
     }
     ;
 
@@ -552,11 +570,17 @@ int es_tipo_entero_ts(const char* lexema) {
 /* Manejador de errores por defecto de Bison */
 
 void yyerror(const char *s) {
-    // Como yy_lexema es un arreglo, verificamos si el primer carácter es nulo
-    const char *lex = (yy_lexema[0] != '\0') ? yy_lexema : "DESCONOCIDO";
+    int linea = yy_linea;
+    int columna = yy_col_ini;
+    const char *lex = yy_lexema[0] != '\0' ? yy_lexema : "DESCONOCIDO";
 
-    printf("\n[ERROR SINTÁCTICO] Línea %d, Columna %d: %s (cerca de '%s')\n", 
-           yy_linea, yy_col_ini, s, lex);
-    fflush(stdout);
+    if (s && strstr(s, "P_COMA") != NULL &&
+        yy_prev_token_line > 0 &&
+        yy_prev_token_col_fin > 0) {
+        linea = yy_prev_token_line;
+        columna = yy_prev_token_col_fin + 1;
+    }
+
+    registrar_error_analisis("SINTACTICO", "ERR_SYNTAX",
+                             linea, columna, lex, s ? s : "Error sintactico");
 }
-
