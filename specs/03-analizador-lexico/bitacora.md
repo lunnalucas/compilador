@@ -187,3 +187,18 @@ consola, la salida identifica cada token de forma clara pero no utiliza los nomb
 - Se agrego un ejemplo de como funciona el analizador lexico cuando recibe un fragmento de programa beta.
 - Se agregaron casos de prueba y resultados esperados.
 - Se detallaron criterios de aceptacion.
+
+## Iteración 6 — Refactorización y alineación del analizador léxico. Volviendo de iteraciones del sintactico.
+
+**Fecha:** 21/10/2026 · GitHub Copilot (IA integrada en Visual Studio Code)
+
+**Qué pedí:** 
+Separar las tablas del autómata para dejar el código fuente limpio y legible, ordenar y mejorar la impresión de los resultados, y adaptar la detección, almacenamiento y reporte de errores léxicos para que cumpla exactamente con las nuevas incorporaciones de la especificación sobre manejo de errores.
+
+**Qué se hizo:**
+* **Modularización y legibilidad:** Se desacoplaron las tablas de transición del autómata, moviéndolas a archivos independientes (`src/lexer_tables.c` y `src/lexer_tables.h`). Con esto, `lexer.c` queda mucho más limpio, enfocado netamente en la lógica y fácil de mantener.
+* **Orden en la impresión:** Se ajustó el formato de salida en consola de los tokens y diagnósticos para que los datos se muestren alineados y ordenados. Además, se corrigió la visualización de caracteres inválidos para que la terminal imprima el carácter original de forma legible en lugar de sus bytes de escape.
+* **Alineación con la especificación de errores:** Se implementó la lógica de detección, acumulación y almacenamiento de errores léxicos basada en el pseudocódigo agregado recientemente a la especificación. El analizador ahora recolecta los errores de manera estructurada a lo largo del recorrido del archivo fuente y gestiona su reporte final de forma ordenada.
+
+**Impacto en el proyecto:** 
+Se logró una arquitectura de código modular y sumamente limpia que respeta por completo las pautas de diseño y la nueva especificación de manejo de errores, dejando el analizador léxico listo y sólido para integrar la siguiente fase del compilador.
