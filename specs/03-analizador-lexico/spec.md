@@ -423,10 +423,57 @@ son errores léxicos. Los códigos E5–E11 y E13–E17 pertenecen a fases
 posteriores o a ejecución, según `specs/01-diseno/spec.md`, y no deben emitirse
 desde este módulo.
 
-Cada diagnóstico incluye como mínimo: código, severidad, mensaje, línea,
-columna inicial, columna final y lexema o fragmento relevante. El diagnóstico
-no debe exponer memoria no inicializada ni modificar silenciosamente el
-contenido fuente.
+Cada diagnóstico incluye como mínimo: código, lexema o fragmento y ubicacion (linea).
+
+---
+
+## 11.1 Almacenar errores lexicos
+
+Cada vez que el analizador lexico detecta errores los guarda y sigue con el analisis lexico de todo el programa. Un error no aborta la compilacion del programa, lo almacena y continua su recorrido.
+
+El almacenamiento y deteccion de errores se implementara de la siguiente manera (en pseudocodigo):
+
+```c
+estructura ErrorLexico {
+  codigo
+  lexema_o_fragmento
+  ubicacion
+}
+
+pila_errores = vacia
+
+registrar_error(codigo, fragmento, ubicacion) {
+  error = nuevo ErrorLexico
+  error.codigo = codigo
+  error.lexema_o_fragmento = fragmento
+  error.ubicacion = ubicacion
+
+  apilar(pila_errores, error)
+}
+
+yylex() {
+
+  si (se_detecto_un_error) {
+    registrar_error(codigo, fragmento, ubicacion)
+    retornar ERROR_LEXICO
+  }
+
+}
+
+informar_errores() {
+  // pila auxiliar para recuperar el orden en que fueron detectados.
+  pila_para_informar = vacia
+
+  mientras (pila_errores no esta vacia) {
+    apilar(pila_para_informar, desapilar(pila_errores))
+  }
+
+  mientras (pila_para_informar no esta vacia) {
+    error = desapilar(pila_para_informar)
+    imprimir_errores(error)
+  }
+}
+```
 
 ---
 

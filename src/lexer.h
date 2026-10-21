@@ -13,6 +13,12 @@ extern double yy_fval;
 extern int lex_error_code;
 extern char lex_error_msg[256];
 
+/* Advertencia E4 del último identificador truncado. */
+extern int lex_warning_code;
+extern int lex_warning_line, lex_warning_col;
+extern char lex_warning_msg[256];
+extern char lex_warning_lexema[21];
+
 /* Listo para Bison: misma firma que usará yyparse(). */
 void lexer_init(FILE *f);
 int yylex(void);

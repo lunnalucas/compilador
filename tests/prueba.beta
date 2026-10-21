@@ -3,13 +3,13 @@ real calcularSuma(entero a, real b){
 }
 
 inicio {
-  entero x = 10;
-  real y = 2.5;
+  entero $ = 1E0;
+  real y = 2.;5;
   entero i, resultado;
 
   resultado = calcularSuma(x,y);
-  imprimir ("Resultado truncado");
-  imprimir (resultado);
+  impr#mir ("Resultado truncado");
+  imprimir (resultado);#
 
   para (i=6 ; i>=0 & x>5 ; 2){
     si(i == 0){

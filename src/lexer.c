@@ -6,6 +6,7 @@
 #include <limits.h>
 #include "tokens.h"
 #include "lexer.h"
+#include "lexer_tables.h"
 
 /* ============ estado persistente ============ */
 char yy_lexema[8192];
@@ -14,6 +15,10 @@ long yy_ival = 0;
 double yy_fval = 0.0;
 int lex_error_code = 0;
 char lex_error_msg[256] = {0};
+int lex_warning_code = 0;
+int lex_warning_line = 0, lex_warning_col = 0;
+char lex_warning_msg[256] = {0};
+char lex_warning_lexema[21] = {0};
 
 static FILE *lex_fp = NULL;
 static int cur_line = 1, cur_col = 1;     /* posición del próximo char */
@@ -26,7 +31,7 @@ static int id_excess = 0;
 static int num_overflow = 0;
 static int real_has_frac = 0;
 static int tok_line_ini = 1, tok_col_ini = 1;
-static int op_c0 = 0, op_start_line = 1, op_start_col = 1;
+static int op_start_line = 1, op_start_col = 1;
 static int tok_pending = -1;
 static int skip_auto_unread = 0;
 static int cur_estado_global = 0;
@@ -37,6 +42,7 @@ static char ts_ids[TS_MAX][21];
 static int ts_n = 0;
 
 /* ============ utilidades de lectura ============ */
+/* Lee un carácter y actualiza la posición de línea y columna. */
 static int leer_caracter(void) {
     int c;
     if (pb_valid) { c = pb_c; pb_valid = 0; }
@@ -49,19 +55,25 @@ static int leer_caracter(void) {
     return c;
 }
 
+/* Devuelve un carácter al flujo y revierte su avance de posición. */
 static void unread_char(int c) {
     if (c == EOF) return;
     pb_c = c; pb_valid = 1;
     cur_line = last_line; cur_col = last_col; /* sin duplicar avance */
 }
 
+/* Inicializa el flujo y limpia los diagnósticos de la siguiente pasada. */
 void lexer_init(FILE *f) {
     lex_fp = f;
     cur_line = 1; cur_col = 1; last_line = 1; last_col = 1;
     pb_valid = 0; lex_len = 0; tok_pending = -1;
     lex_error_code = 0; lex_error_msg[0] = '\0';
+    lex_warning_code = 0; lex_warning_msg[0] = '\0';
+    lex_warning_line = 0; lex_warning_col = 0;
+    lex_warning_lexema[0] = '\0';
 }
 
+/* Devuelve el nombre legible asociado al código público de un token. */
 const char *token_nombre(int tok) {
     switch (tok) {
         case 100: return "ID";
@@ -101,6 +113,7 @@ const char *token_nombre(int tok) {
     }
 }
 
+/* Obtiene la representación textual de operadores y delimitadores. */
 static const char *lexema_fijo(int tok) {
     switch (tok) {
         case 111: return "=";
@@ -128,55 +141,30 @@ static const char *lexema_fijo(int tok) {
     }
 }
 
-/* ============ get_evento: 22 columnas ============ */
-static int get_evento(int c) {
-    if (c == EOF) return 21;
-    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) return 0;
-    if (c >= '0' && c <= '9') return 1;
-    switch (c) {
-        case '=': return 2;
-        case '!': return 3;
-        case '<': return 4;
-        case '>': return 5;
-        case '&': return 6;
-        case '|': return 7;
-        case '+': return 8;
-        case '-': return 9;
-        case '*': return 10;
-        case '/': return 11;
-        case '(': return 12;
-        case ')': return 13;
-        case '{': return 14;
-        case '}': return 15;
-        case ';': return 16;
-        case ',': return 17;
-        case '.': return 18;
-        case '"': return 19;
-        case ' ':
-        case '\t':
-        case '\n':
-        case '\r': return 20;
-        default: return -1; /* OTRO */
-    }
-}
-
 /* ============ acciones semánticas (void) ============ */
+/* Acciones semánticas sin efecto para transiciones estructurales. */
 void hacer_nada(int c) { (void)c; }
+
+/* Descarta el contenido de un comentario; la lectura ya mantiene ubicación. */
 void ignorar_comentario(int c) { (void)c; }
 
+/* Comienza a recolectar un identificador y registra su posición inicial. */
 void iniciar_id(int c) {
     lex_len = 0; lex_buf[lex_len++] = (char)c;
     tok_line_ini = last_line; tok_col_ini = last_col;
     id_excess = 0;
 }
+/* Conserva hasta 20 caracteres e indica si el nombre excede el límite. */
 void agregar_id(int c) {
     if (lex_len < 20) lex_buf[lex_len++] = (char)c;
     else id_excess = 1;
 }
+/* Agrega una sola vez cada identificador truncado a la tabla mínima de fase. */
 static void ts_agregar(const char *s) {
     for (int i = 0; i < ts_n; i++) if (strcmp(ts_ids[i], s) == 0) return;
     if (ts_n < TS_MAX) { strncpy(ts_ids[ts_n], s, 20); ts_ids[ts_n][20] = '\0'; ts_n++; }
 }
+/* Finaliza el identificador, resuelve palabras reservadas y registra E4. */
 void fin_id(int c) {
     (void)c;
     lex_buf[lex_len] = '\0';
@@ -190,20 +178,28 @@ void fin_id(int c) {
     else if (strcmp(lex_buf, "retornar") == 0) tok_pending = RETORNAR;
     else { tok_pending = ID; ts_agregar(lex_buf); }
     if (id_excess) {
-        fprintf(stderr, "Advertencia E4 en %d:%d: identificador truncado a 20 caracteres (%s...)\n",
-                tok_line_ini, tok_col_ini, lex_buf);
+        lex_warning_code = 4;
+        lex_warning_line = tok_line_ini;
+        lex_warning_col = tok_col_ini;
+        snprintf(lex_warning_msg, sizeof(lex_warning_msg),
+                 "Identificador truncado a 20 caracteres");
+        memcpy(lex_warning_lexema, lex_buf, sizeof(lex_warning_lexema));
+        lex_warning_lexema[sizeof(lex_warning_lexema) - 1] = '\0';
     }
 }
 
+/* Inicia una constante entera y registra dónde comienza. */
 void iniciar_entero(int c) {
     lex_len = 0; lex_buf[lex_len++] = (char)c;
     tok_line_ini = last_line; tok_col_ini = last_col;
     num_overflow = 0;
 }
+/* Añade un dígito a la forma textual de la constante entera. */
 void agregar_entero(int c) {
     if (lex_len < (int)sizeof(lex_buf) - 1) lex_buf[lex_len++] = (char)c;
     else num_overflow = 1;
 }
+/* Añade el punto decimal o un dígito de la parte fraccionaria. */
 void agregar_real(int c) {
     if (c == '.') {
         if (lex_len < (int)sizeof(lex_buf) - 1) lex_buf[lex_len++] = '.';
@@ -215,6 +211,7 @@ void agregar_real(int c) {
         real_has_frac = 1;
     }
 }
+/* Valida la forma y el rango de una constante entera al cerrar el lexema. */
 void fin_entero(int c) {
     /* E2: dígitos seguidos de letra sin separador, ej. 10abc */
     if (c != EOF && isalpha((unsigned char)c)) {
@@ -257,6 +254,7 @@ void fin_entero(int c) {
     yy_ival = v;
     tok_pending = CTE_E;
 }
+/* Valida la forma y el rango de una constante real al cerrar el lexema. */
 void fin_real(int c) {
     /* E2: 12.3.4 -> segundo punto seguido de dígito */
     if (c == '.') {
@@ -325,27 +323,65 @@ void fin_real(int c) {
     tok_pending = CTE_R;
 }
 
+/* Prepara el buffer para recolectar el contenido entre comillas. */
 void iniciar_salida(int c) {
     (void)c;
     lex_len = 0;
     tok_line_ini = last_line; tok_col_ini = last_col;
     num_overflow = 0;
 }
+/* Agrega el contenido de la cadena sin interpretar secuencias de escape. */
 void agregar_salida(int c) {
     if (c == EOF) return;
     if (c == '\r') return; /* normalizar */
     if (lex_len < (int)sizeof(lex_buf) - 1) lex_buf[lex_len++] = (char)c;
     else num_overflow = 1;
 }
+/* Termina la cadena y asegura que su contenido sea una cadena C válida. */
 void fin_salida(int c) { (void)c; lex_buf[lex_len] = '\0'; }
 
-/* ERROR de la matriz de procesos */
+/* Construye el diagnóstico correspondiente a la transición de error. */
 void ERROR(int c) {
     char frag[64] = {0};
+    int error_line = last_line;
+    int error_col = last_col;
     if (c == EOF) snprintf(frag, sizeof(frag), "EOF");
     else if (c == '\n') snprintf(frag, sizeof(frag), "\\n");
+    else if ((unsigned char)c < 0x20 || (unsigned char)c >= 0x7f)
+    {
+        unsigned char bytes[4];
+        int cantidad = 1;
+        int continuaciones = 0;
+        bytes[0] = (unsigned char)c;
+
+        /* Agrupa los bytes UTF-8 de un carácter ajeno al alfabeto en un E1. */
+        if (bytes[0] >= 0xC2 && bytes[0] <= 0xDF) continuaciones = 1;
+        else if (bytes[0] >= 0xE0 && bytes[0] <= 0xEF) continuaciones = 2;
+        else if (bytes[0] >= 0xF0 && bytes[0] <= 0xF4) continuaciones = 3;
+
+        while (cantidad <= continuaciones) {
+            int siguiente = leer_caracter();
+            if (siguiente == EOF) break;
+            if (((unsigned char)siguiente & 0xC0) != 0x80) {
+                unread_char(siguiente);
+                break;
+            }
+            bytes[cantidad++] = (unsigned char)siguiente;
+        }
+
+        /* Los bytes agrupados representan una sola columna del archivo fuente. */
+        if (cantidad > 1) {
+            cur_col -= cantidad - 1;
+            last_line = error_line;
+            last_col = error_col;
+        }
+
+        /* Conserva los bytes UTF-8 para mostrar el carácter original (p. ej. ¿). */
+        memcpy(frag, bytes, (size_t)cantidad);
+        frag[cantidad] = '\0';
+    }
     else snprintf(frag, sizeof(frag), "%c", (char)c);
-    yy_linea = last_line; yy_col_ini = last_col; yy_col_fin = last_col;
+    yy_linea = error_line; yy_col_ini = error_col; yy_col_fin = error_col;
     strncpy(yy_lexema, frag, sizeof(yy_lexema) - 1);
     if (cur_estado_global == 0 && c == '.') {
         lex_error_code = 20;
@@ -369,137 +405,15 @@ void ERROR(int c) {
     }
 }
 
-/* ============ matrices [28][22] ============ */
-/* Columnas: 0 letra,1 dig,2 =,3 !,4 <,5 >,6 &,7 |,8 +,9 -,10 *,11 /,12 (,13 ),14 {,15 },16 ;,17 ",",18 .,19 "",20 ESP-TAB,21 EOF */
-static const int nuevo_estado[28][22] = {
-    {1,2,4,6,8,10,12,13,14,15,16,17,20,21,22,23,24,25,-2,26,0,-1},
-    {1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,3,-1,-1,-1},
-    {-1,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-2,-2,7,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,11,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {18,18,18,18,18,18,18,18,18,18,19,18,18,18,18,18,18,18,18,18,18,-2},
-    {18,18,18,18,18,18,18,18,18,18,19,0,18,18,18,18,18,18,18,18,18,-2},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,27,26,-2},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}
-};
 
-static void (*proceso[28][22])(int) = {
-    {iniciar_id,iniciar_entero,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,ERROR,iniciar_salida,hacer_nada,hacer_nada},
-    {agregar_id,agregar_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id,fin_id},
-    {fin_entero,agregar_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,fin_entero,agregar_real,fin_entero,fin_entero,fin_entero},
-    {fin_real,agregar_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real,fin_real},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {ERROR,ERROR,hacer_nada,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,ignorar_comentario,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ERROR},
-    {ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ignorar_comentario,ERROR},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada},
-    {agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,agregar_salida,fin_salida,agregar_salida,ERROR},
-    {hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada,hacer_nada}
-};
 
-static const int unread_mat[28][22] = {
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1},
-    {1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
-};
-
-static const int token_matriz[28][22] = {
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100},
-    {101,-1,101,101,101,101,101,101,101,101,101,101,101,101,101,101,101,101,-1,101,101,101},
-    {102,-1,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102},
-    {111,111,-1,111,111,111,111,111,111,111,111,111,111,111,111,111,111,111,111,111,111,111},
-    {112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112},
-    {-2,-2,-1,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2},
-    {113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113,113},
-    {114,114,-1,114,114,114,114,114,114,114,114,114,114,114,114,114,114,114,114,114,114,114},
-    {116,116,116,116,116,116,116,116,116,116,116,116,116,116,116,116,116,116,116,116,116,116},
-    {115,115,-1,115,115,115,115,115,115,115,115,115,115,115,115,115,115,115,115,115,115,115},
-    {117,117,117,117,117,117,117,117,117,117,117,117,117,117,117,117,117,117,117,117,117,117},
-    {118,118,118,118,118,118,118,118,118,118,118,118,118,118,118,118,118,118,118,118,118,118},
-    {119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119,119},
-    {120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120},
-    {121,121,121,121,121,121,121,121,121,121,121,121,121,121,121,121,121,121,121,121,121,121},
-    {122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122,122},
-    {123,123,123,123,123,123,123,123,123,123,-1,123,123,123,123,123,123,123,123,123,123,123},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
-    {124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124},
-    {125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125},
-    {126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126},
-    {127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127},
-    {128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128},
-    {129,129,129,129,129,129,129,129,129,129,129,129,129,129,129,129,129,129,129,129,129,129},
-    {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,132,-1,-1},
-    {132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132}
-};
-
-/* ============ yylex ============ */
+/* Recorre las matrices hasta formar un token, un diagnóstico o llegar a EOF. */
 int yylex(void) {
     if (!lex_fp) return 0;
     tok_pending = -1;
     lex_error_code = 0; lex_error_msg[0] = '\0';
+    lex_warning_code = 0; lex_warning_msg[0] = '\0';
+    lex_warning_lexema[0] = '\0';
     skip_auto_unread = 0;
 
     int estado = 0;
@@ -519,7 +433,7 @@ int yylex(void) {
             break;
         }
         if (estado == 0 && col >= 0 && col <= 19) {
-            op_c0 = c; op_start_line = last_line; op_start_col = last_col;
+            op_start_line = last_line; op_start_col = last_col;
             tok_line_ini = last_line; tok_col_ini = last_col;
         }
         cur_estado_global = estado;
@@ -575,6 +489,7 @@ int yylex(void) {
     return tok;
 }
 
+/* Muestra los identificadores únicos recolectados durante el análisis. */
 void mostrarTS(void) {
     printf("---- Tabla de simbolos (fase lexica: identificadores) ----\n");
     if (ts_n == 0) { printf("(vacia)\n"); return; }
