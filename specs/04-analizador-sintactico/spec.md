@@ -4,8 +4,8 @@
 **Depende de:** [`specs/01-diseno/spec.md`](../01-diseno/spec.md),
 [`specs/02-tabla-simbolos/spec.md`](../02-tabla-simbolos/spec.md),
 [`specs/03-analizador-lexico/spec.md`](../03-analizador-lexico/spec.md)
-**Consume:** tokens y ubicación producidos por `yylex()` (`src/lexer.c`).
-**Produce:** verificación gramatical + Árbol Sintáctico Abstracto (AST), listo para análisis semántico y código intermedio.
+**Consume:** tokens producidos por el analizador lexico - `yylex()`.
+**Produce:** verificación gramatical.
 **Estado:** EN CURSO.
 
 ---
@@ -32,23 +32,38 @@ tipos (Entero/Real).
 * **Integración:** Interfaz directa entre `yyparse()` y el consumidor del lexer (`yylex()`).
 * **Fuera del alcance:** La generación final de código Assembler y la ejecución en tiempo de ejecución (contemplado en etapas posteriores).
 
-## 3. Entradas / Salidas
+## 3. Entrada / Salida
 
 | Elemento | Contrato |
 |---|---|
-| Entrada | Secuencia de `int` devueltos por `yylex()`: 100–132 según `01-diseno/spec.md §4` y `src/tokens.h`; `0` = EOF; `-1` = error léxico (el parser no lo consume como token: aborta o sincroniza según `§10`). |
+| Entrada | Secuencia de `int` devueltos por `yylex()`: 100-132 según `01-diseno/spec.md §4`. |
 | Salida principal | `0` si el programa es gramaticalmente válido, `!= 0` si hay error sintáctico. |
-| Salida secundaria | Puntero a raíz AST (`N_PROGRAMA`) con conversiones anotadas; tabla de símbolos poblada (funciones + ámbitos). |
-| Ubicación | Cada nodo AST guarda `linea, col_ini, col_fin` copiadas del token que lo origina (ID, CTE, palabra reservada u operador). `yyerror()` informa línea/col del token actual. |
+
+El analizador sintactico se implementa de la siguiente manera (pseudocodigo):
+
+```c
+
+int main() {
+
+    archivo = leer_archivo("archivo.beta", "r");
+
+    mientras (archivo != vacio) {
+        yyparse()
+    }
+
+    archivo.close();
+
+    si (archivo con errores) { print("compilacion completa con errores"); informar_errores(); }
+    else { print("compilacion completa sin errores"); }
+
+}
+
+```
 
 Algunos resultados esperados:
 
 1. El parser nunca pide un token que el lexer no define (100–132, EOF).
 2. Blancos y comentarios nunca llegan al parser (los consume el lexer).
-3. `PUNTO` (130) y `COMILLA` (131) están definidos en diseño pero el lexer no
-   los emite; el parser los declara por compatibilidad pero ninguna producción
-   válida los exige.
-4. Tras EOF, `yylex()` retorna `0` sin avanzar; `yyparse()` termina.
 
 ## 4. Reglas y decisiones de diseño
 
@@ -56,293 +71,136 @@ Algunos resultados esperados:
 |---|---|---|
 | S1 | Gramática | Copia literal de `01-diseno/spec.md §6`, transcripta a sintaxis Bison (§6). Sin agregar ni quitar producciones. |
 | S2 | Gramatica | Recursion y asociatividad a la izquierda |
-| S3 | `para` | `<control>` solo `ENTERO ID ASIG CTE_E` o `ID ASIG CTE_E`; condición es `<condicional>`; actualizacion es `CTE_E` (`PAR_ABRE control P_COMA condicional P_COMA CTE_E PAR_CIERRA bloque`). |
-| S4 | Funciones | 1 o 2 parametros. 0 parametros o 3+ parametros es E10/E9. `inicio` es `<principal> ::= INICIO bloque_i`, sin parametros ni retorno; solo puede aparecer una vez (§6.3). |
+| S3 | Funciones | 1 o 2 parametros. 0 parametros o 3+ parametros es E10/E9. `inicio` es `<principal> ::= INICIO bloque_i`, sin parametros ni retorno; solo puede aparecer una vez (§6.3). |
 | S5 | `imprimir` | Lista vacía `imprimir()` es E5. |
 
-## 5. Tokens en Bison
+## 5. Tokens
 
-```yacc
-%token ID 100 CTE_E 101 CTE_R 102
-%token INICIO 103 ENTERO 104 REAL 105 SI 106 SINO 107 PARA 108
-%token IMPRIMIR 109 RETORNAR 110
-%token ASIG 111 IGUAL 112 DISTINTO 113 MENOR 114 MAYOR 115
-%token MENOR_IGUAL 116 MAYOR_IGUAL 117 AND 118 OR 119
-%token SUMA 120 RESTA 121 PRODUCTO 122 DIVISION 123
-%token PAR_ABRE 124 PAR_CIERRA 125 LLAVE_ABRE 126 LLAVE_CIERRA 127
-%token P_COMA 128 COMA 129 PUNTO 130 COMILLA 131 CADENA 132
-```
+| Código | Token | Lexema |
+|--------|--------|-------------|
+| 100 | `ID` | identificador (máx. 20 caracteres) |
+| 101 | `CTE_E` | constante entera |
+| 102 | `CTE_R` | constante real |
+| 103 | `INICIO` | `inicio` |
+| 104 | `ENTERO` | `entero` |
+| 105 | `REAL` | `real` |
+| 106 | `SI` | `si` |
+| 107 | `SINO` | `sino` |
+| 108 | `PARA` | `para` |
+| 109 | `IMPRIMIR` | `imprimir` |
+| 110 | `RETORNAR` | `retornar` |
+| 111 | `ASIG` | `=` |
+| 112 | `IGUAL` | `==` |
+| 113 | `DISTINTO` | `!=` |
+| 114 | `MENOR` | `<` |
+| 115 | `MAYOR` | `>` |
+| 116 | `MENOR_IGUAL` | `<=` |
+| 117 | `MAYOR_IGUAL` | `>=` |
+| 118 | `AND` | `&` |
+| 119 | `OR` | `\|` |
+| 120 | `SUMA` | `+` |
+| 121 | `RESTA` | `-` |
+| 122 | `PRODUCTO` | `*` |
+| 123 | `DIVISION` | `/` |
+| 124 | `PAR_ABRE` | `(` |
+| 125 | `PAR_CIERRA` | `)` |
+| 126 | `LLAVE_ABRE` | `{` |
+| 127 | `LLAVE_CIERRA` | `}` |
+| 128 | `P_COMA` | `;` |
+| 129 | `COMA` | `,` |
+| 130 | `PUNTO` | `.` |
+| 131 | `COMILLA` | `"` |
+| 132 | `CADENA` | cadena de caracteres delimitada por comillas dentro de la funcion `IMPRIMIR` |
 
-## 6. Precedencia y asociatividad
-
-```
-%left OR
-%left AND
-%nonassoc IGUAL DISTINTO MENOR MAYOR MENOR_IGUAL MAYOR_IGUAL
-%left SUMA RESTA
-%left PRODUCTO DIVISION
-%nonassoc SI
-%nonassoc SINO
-```
-
-## 7. Tipos y estructura del arbol
-
-```
-// ==================================================================
-// ====================== ESTRUCTURA DEL ARBOL ======================
-// ==================================================================
-
-typedef enum {
-    TIPO_ENTERO,
-    TIPO_REAL,
-    TIPO_NULL
-}TipoDato;
-
-typedef enum {
-    NODO_PROGRAMA,          //nodo raiz
-    NODO_UNIDAD, 
-    NODO_BLOQUE, 
-    NODO_DECLARACION,
-    NODO_ASIGNACION, 
-    NODO_SELECCION, 
-    NODO_BUCLE, 
-    NODO_SALIDA,
-    NODO_RETORNO, 
-    NODO_INVOCACION, 
-    NODO_COMPARADOR,        //nodo de comparadores <, >, <=, >=, !=, ==
-    NODO_OPERACION,         //nodo operaciones aritmeticas
-    NODO_LOGICO,            //nodo operaciones logicas
-    NODO_ENTERO,
-    NODO_REAL,
-    NODO_ID,
-    NODO_CASTEAR_TRUNCAR    //nodo para castear o truncar los tipos de datos
-} TipoNodo;
-
-
-typedef struct ASTNodo {
-    TipoNodo tipo_nodo;
-    union {
-        struct {
-            char* lexema;
-            ASTNodo* hijo_izq;
-            ASTNodo* hijo_der;
-        } nodo;
-        struct {
-            TipoDato tipo_dato;
-            union {
-                char* lexema;
-                int valor_entero;
-                float valor_real;
-            }
-        } hoja;
-    }
-} ASTNodo;
-
-// ==================================================================
-// ====================== ACCIONES SEMANTICAS =======================
-// ==================================================================
-
-ASTNodo* crear_nodo(tipo_nodo, contenido, nodo_hijo_izq, nodo_hijo_der) { }
-ASTNodo* crear_hoja(tipo_nodo, tipo_dato, contenido) { }
-ASTNodo* castear_truncar_nodo(tipo_nodo, nodo, tipo_objetivo) { }
-
-// =============================================================================
-// ====================== TIPOS DE TOKENS Y NO TERMINALES ======================
-// =============================================================================
-
-%union {
-    ASTNodo* nodo;
-    int valor_entero;
-    float valor_real;
-    char* valor_cadena;
-    char id[21];            //truncado a 20
-    int tipo;               // ENTERO O REAL segun numero de token
-}
-%token <id> ID
-%token <valor_entero> CTE_E
-%token <valor_real> CTE_R
-%token <valor_cadena> CADENA
-%type <nodo> programa unidades unidad principal parametros bloque bloque_i
-%type <nodo> sentencias sentencia sentencias_i sentencia_i
-%type <nodo> declaracion ids asignacion invocacion seleccion condicional
-%type <nodo> t_condicional f_condicional condicion comparador bucle control
-%type <nodo> salida elementos_salida elemento_salida retorno argumentos
-%type <nodo> expresion termino factor tipo
-
-
-%start programa             //inicio de la gramatica
-```
-
-## 8. Gramática Bison (copia de `01-diseno/spec.md §6`)
-
-Nota: terminales en MAYÚSCULAS, `|` alternativas.
+## 6. Gramática (copia de `01-diseno/spec.md §6`)
 
 ```
-programa
-    : unidades principal
-    | principal
-    ;
+<programa>            ::= <unidades> <principal>
+                        | <principal>
 
-principal
-    : INICIO bloque_i
-    ;
+<principal>           ::= INICIO <bloque_i>
 
-unidades
-    : unidades unidad
-    | unidad
-    ;
+<unidades>            ::= <unidades> <unidad>
+                        | <unidad>
 
-unidad
-    : tipo ID PAR_ABRE parametros PAR_CIERRA bloque
-    ;
+<unidad>              ::= <tipo> ID '(' <parametros> ')' <bloque>
 
-parametros
-    : tipo ID
-    | tipo ID COMA tipo ID
-    ;
+<parametros>          ::= <tipo> ID
+                        | <tipo> ID ',' <tipo> ID
 
-bloque
-    : LLAVE_ABRE sentencias LLAVE_CIERRA
-    ;
+<bloque>              ::= '{' <sentencias> '}'
 
-bloque_i
-    : LLAVE_ABRE sentencias_i LLAVE_CIERRA
-    ;
+<bloque_i>            ::= '{' <sentencias_i> '}'
 
-sentencias_i
-    : sentencias_i sentencia_i
-    | sentencia_i
-    ;
+<sentencias_i>        ::= <sentencias_i> <sentencia_i>
+                        | <sentencia_i>
 
-sentencia_i
-    : declaracion
-    | asignacion
-    | seleccion
-    | bucle
-    | salida
-    ;
+<sentencia_i>         ::= <declaracion> | <asignacion> | <seleccion> | <bucle> | <salida>
 
-sentencias
-    : sentencias sentencia
-    | sentencia
-    ;
+<sentencias>          ::= <sentencias> <sentencia>
+                        | <sentencia>
 
-sentencia
-    : declaracion
-    | asignacion
-    | seleccion
-    | bucle
-    | salida
-    | retorno
-    ;
+<sentencia>           ::= <declaracion> | <asignacion> | <seleccion> | <bucle> | <salida> | <retorno>
 
-declaracion
-    : tipo ID ASIG expresion P_COMA
-    | tipo ids P_COMA
-    | tipo ID P_COMA
-    ;
+<declaracion>         ::= <tipo> ID '=' <expresion> ';'
+                        | <tipo> <ids> ';'
+                        | <tipo> ID ';'
 
-ids
-    : ids COMA ID
-    | ID
-    ;
+<ids>                 ::= <ids> ',' ID
+                        | ID
 
-asignacion
-    : ID ASIG expresion P_COMA
-    | ID ASIG invocacion P_COMA
-    ;
+<asignacion>          ::= ID '=' <expresion> ';'
+                        | ID '=' <invocacion> ';'
 
-invocacion
-    : ID PAR_ABRE argumentos PAR_CIERRA
-    ;
+<invocacion>          ::= ID '(' <argumentos> ')'
 
-seleccion
-    : SI PAR_ABRE condicional PAR_CIERRA bloque
-    | SI PAR_ABRE condicional PAR_CIERRA bloque SINO bloque
-    ;
+<seleccion>           ::= SI '(' <condicional> ')' <bloque> 
+                        | SI '(' <condicional> ')' <bloque> SINO <bloque>
 
-condicional
-    : condicional OR t_condicional
-    | t_condicional
-    ;
+<condicional>         ::= <condicional> OR <t_condicional>
+                        | <t_condicional>
 
-t_condicional
-    : t_condicional AND f_condicional 
-    | f_condicional
-    ;
+<t_condicional>       ::= <t_condicional> AND <f_condicional>
+                        | <f_condicional>
 
-f_condicional
-    : condicion
-    | PAR_ABRE condicional PAR_CIERRA
-    ;
+<f_condicional>       ::= <condicion>
+                        | '(' <condicional> ')'
 
-condicion
-    : expresion comparador expresion  
-    ;
+<condicion>           ::= <expresion> <comparador> <expresion>
 
-comparador
-    : IGUAL | DISTINTO | MENOR | MAYOR | MENOR_IGUAL | MAYOR_IGUAL
-    ;
+<comparador>          ::= IGUAL | DISTINTO | MENOR | MAYOR | MENOR_IGUAL | MAYOR_IGUAL
 
-bucle
-    : PARA PAR_ABRE control P_COMA condicional P_COMA CTE_E PAR_CIERRA bloque
-    ;
+<bucle>               ::= PARA '(' <control> ';' <condicional> ';' CTE_E ')' <bloque>
 
-control
-    : ENTERO ID ASIG CTE_E
-    | ID ASIG CTE_E
-    ;
+<control>             ::= ENTERO ID '=' CTE_E
+                        | ID '=' CTE_E
 
-salida
-    : IMPRIMIR PAR_ABRE elementos_salida PAR_CIERRA P_COMA
-    ;
+<salida>              ::= IMPRIMIR '(' <elementos_salida> ')' ';'
 
-elementos_salida
-    : elementos_salida COMA elemento_salida 
-    | elemento_salida
-    ;
+<elementos_salida>    ::= <elementos_salida> ',' <elemento_salida>
+                        | <elemento_salida>
 
-elemento_salida
-    : CADENA
-    | expresion
-    | invocacion
-    ;
+<elemento_salida>      ::= CADENA | <expresion> | <invocacion>
+                        
+<retorno>             ::= RETORNAR <expresion> ';'
 
-retorno
-    : RETORNAR expresion P_COMA  
-    ;
+<argumentos>          ::= <expresion> ',' <expresion>
+                        | <expresion>
 
-argumentos
-    : expresion COMA expresion
-    | expresion
-    ;
+<expresion>           ::= <expresion> '+' <termino>
+                        | <expresion> '-' <termino>
+                        | <termino>
 
-expresion
-    : expresion SUMA termino      
-    | expresion RESTA termino     
-    | termino
-    ;
+<termino>             ::= <termino> '*' <factor>
+                        | <termino> '/' <factor>
+                        | <factor>
 
-termino
-    : termino PRODUCTO factor   
-    | termino DIVISION factor    
-    | factor
-    ;
+<factor>              ::= ID | CTE_E | CTE_R | '(' <expresion> ')'
 
-factor
-    : ID
-    | CTE_E
-    | CTE_R
-    | PAR_ABRE expresion PAR_CIERRA
-    ;
-
-tipo
-    : ENTERO
-    | REAL
-    ;
+<tipo>                ::= ENTERO | REAL
 ```
 
-### 8.1 Restricciones sintacticas
+### 6.1 Restricciones sintacticas
 
 1. `principal` (`inicio`) aparece exactamente una vez y al final del archivo.
 2. No hay funciones anidadas: `unidad` solo aparece en `unidades` a nivel
@@ -351,18 +209,18 @@ tipo
    (`inicio` no retorna, no tiene tipo).
 4. `inicio` no lleva parámetros ni tipo de retorno.
 
-## 9 Errores de esta fase
+## 7 Errores de esta fase
 
 Solo E5, E9, E10 en esta etapa. Los léxicos (E1–E4, E12, E18–E20) ya
 fueron emitidos antes.
 
 | Código | Condición sintáctica | Mensaje |
 |---|---|---|
-| E5 | cualquier secuencia que no reduce según §6. Ejemplo: `entero = 5;`, `si x {}`, `para (i=0;i<5;) {}`, `imprimir();`, `retornar;` | `Error sintactico E5 en L:C: se esperaba ...` |
+| E5 | cualquier secuencia que no reduce según §6. Ejemplo: `entero = 5;`, `si x {}`, `para (i=0;i<5;) {}`, `imprimir();`, `retornar;` | `Error E5 en ...` |
 | E9 | definición o llamada con más de 2 parámetros/argumentos | `Error E9: la funcion 'f' supera el maximo de 2 parametros/argumentos` |
 | E10 | definición de función sin parámetros (`f()`) | `Error E10: la funcion 'f' debe tener 1 o 2 parametros` |
 
-## 10. Criterios de Aceptación
+## 8. Criterios de Aceptación
 El Analizador Sintáctico se considerará aceptado cuando:
 1. El archivo `src/parser.y` compile limpiamente con Bison (`bison -d src/parser.y -o src/parser.tab.c`) generando las cabeceras requeridas sin conflictos.
 2. Reconozca la totalidad de las reglas gramaticales BNF (§6) consumiendo iterativamente los tokens `100–132` desde `yylex()`.
