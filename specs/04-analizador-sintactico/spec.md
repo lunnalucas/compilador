@@ -209,7 +209,7 @@ Algunos resultados esperados:
    (`inicio` no retorna, no tiene tipo).
 4. `inicio` no lleva parámetros ni tipo de retorno.
 
-## 7 Errores de esta fase
+## 7. Errores de esta fase
 
 Solo E5, E9, E10 en esta etapa. Los léxicos (E1–E4, E12, E18–E20) ya
 fueron emitidos antes.
@@ -224,6 +224,4 @@ fueron emitidos antes.
 El Analizador Sintáctico se considerará aceptado cuando:
 1. El archivo `src/parser.y` compile limpiamente con Bison (`bison -d src/parser.y -o src/parser.tab.c`) generando las cabeceras requeridas sin conflictos.
 2. Reconozca la totalidad de las reglas gramaticales BNF (§6) consumiendo iterativamente los tokens `100–132` desde `yylex()`.
-3. Construya dinámicamente el Árbol Sintáctico Abstracto (AST) anotando las conversiones de tipos necesarias (`ENTERO_A_REAL` y `REAL_A_ENTERO`).
-4. Gestione correctamente la creación y cierre de ámbitos en la Tabla de Símbolos.
-5. Reporte de forma precisa los errores sintácticos descritos en la sección 7 (`E5`, `E9` y `E10`)
+3. Reporte de forma precisa los errores sintácticos descritos en la sección 7 (`E5`, `E9` y `E10`)
