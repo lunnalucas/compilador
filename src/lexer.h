@@ -22,6 +22,8 @@ extern char lex_warning_lexema[21];
 /* Listo para Bison: misma firma que usará yyparse(). */
 void lexer_init(FILE *f);
 int yylex(void);
+/* Imprime al final los diagnósticos acumulados por las llamadas a yylex(). */
+int informar_errores(void);
 
 /* Tabla de símbolos mínima de esta fase: dump de identificadores. */
 void mostrarTS(void);

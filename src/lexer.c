@@ -41,6 +41,71 @@ static int cur_estado_global = 0;
 static char ts_ids[TS_MAX][21];
 static int ts_n = 0;
 
+typedef struct {
+    int codigo;
+    int linea;
+    int columna;
+    int es_advertencia;
+    char mensaje[256];
+    char lexema[8192];
+} DiagnosticoLexico;
+
+static DiagnosticoLexico *diagnosticos = NULL;
+static size_t cantidad_diagnosticos = 0;
+static size_t capacidad_diagnosticos = 0;
+static int error_memoria_diagnosticos = 0;
+
+/* Conserva una copia del diagnóstico para informarlo al final en orden. */
+static void registrar_diagnostico(int codigo, int linea, int columna,
+                                  int es_advertencia, const char *mensaje,
+                                  const char *lexema) {
+    if (error_memoria_diagnosticos) return;
+
+    if (cantidad_diagnosticos == capacidad_diagnosticos) {
+        size_t nueva_capacidad = capacidad_diagnosticos == 0
+                                     ? 8
+                                     : capacidad_diagnosticos * 2;
+        if (nueva_capacidad < capacidad_diagnosticos ||
+            nueva_capacidad > (size_t)-1 / sizeof(*diagnosticos)) {
+            error_memoria_diagnosticos = 1;
+            return;
+        }
+
+        DiagnosticoLexico *nuevo =
+            realloc(diagnosticos, nueva_capacidad * sizeof(*diagnosticos));
+        if (nuevo == NULL) {
+            error_memoria_diagnosticos = 1;
+            return;
+        }
+        diagnosticos = nuevo;
+        capacidad_diagnosticos = nueva_capacidad;
+    }
+
+    DiagnosticoLexico *diagnostico = &diagnosticos[cantidad_diagnosticos++];
+    diagnostico->codigo = codigo;
+    diagnostico->linea = linea;
+    diagnostico->columna = columna;
+    diagnostico->es_advertencia = es_advertencia;
+    snprintf(diagnostico->mensaje, sizeof(diagnostico->mensaje), "%s", mensaje);
+    snprintf(diagnostico->lexema, sizeof(diagnostico->lexema), "%s", lexema);
+}
+
+/* Añade un carácter si hay espacio y mantiene el buffer terminado en NUL. */
+static void anexar_fragmento(char *fragmento, size_t capacidad, size_t *longitud,
+                             char c) {
+    if (*longitud + 1 < capacidad) {
+        fragmento[(*longitud)++] = c;
+        fragmento[*longitud] = '\0';
+    }
+}
+
+/* Registra el error actual exactamente una vez antes de devolverlo a main. */
+static int devolver_error_lexico(void) {
+    registrar_diagnostico(lex_error_code, yy_linea, yy_col_ini, 0,
+                          lex_error_msg, yy_lexema);
+    return ERROR_LEXICO;
+}
+
 /* ============ utilidades de lectura ============ */
 /* Lee un carácter y actualiza la posición de línea y columna. */
 static int leer_caracter(void) {
@@ -64,6 +129,11 @@ static void unread_char(int c) {
 
 /* Inicializa el flujo y limpia los diagnósticos de la siguiente pasada. */
 void lexer_init(FILE *f) {
+    free(diagnosticos);
+    diagnosticos = NULL;
+    cantidad_diagnosticos = 0;
+    capacidad_diagnosticos = 0;
+    error_memoria_diagnosticos = 0;
     lex_fp = f;
     cur_line = 1; cur_col = 1; last_line = 1; last_col = 1;
     pb_valid = 0; lex_len = 0; tok_pending = -1;
@@ -215,19 +285,20 @@ void agregar_real(int c) {
 void fin_entero(int c) {
     /* E2: dígitos seguidos de letra sin separador, ej. 10abc */
     if (c != EOF && isalpha((unsigned char)c)) {
-        char err[8192]; int n = 0;
+        size_t n;
         lex_buf[lex_len] = '\0';
-        n += snprintf(err + n, sizeof(err) - n, "%s%c", lex_buf, (char)c);
+        n = strlen(lex_buf);
+        memcpy(yy_lexema, lex_buf, n + 1);
+        anexar_fragmento(yy_lexema, sizeof(yy_lexema), &n, (char)c);
         int nc;
         while ((nc = leer_caracter()) != EOF && isalnum((unsigned char)nc)) {
-            if (n < (int)sizeof(err) - 1) err[n++] = (char)nc;
+            anexar_fragmento(yy_lexema, sizeof(yy_lexema), &n, (char)nc);
         }
-        err[n] = '\0';
         if (nc != EOF) unread_char(nc);
         lex_error_code = 2;
         snprintf(lex_error_msg, sizeof(lex_error_msg), "Constante numerica mal formada");
-        strncpy(yy_lexema, err, sizeof(yy_lexema) - 1);
-        yy_linea = tok_line_ini; yy_col_ini = tok_col_ini; yy_col_fin = tok_col_ini + n - 1;
+        yy_linea = tok_line_ini; yy_col_ini = tok_col_ini;
+        yy_col_fin = tok_col_ini + (int)n - 1;
         skip_auto_unread = 1;
         return;
     }
@@ -260,31 +331,36 @@ void fin_real(int c) {
     if (c == '.') {
         int nc = leer_caracter();
         if (nc != EOF && isdigit((unsigned char)nc)) {
-            char err[8192]; int n = 0;
+            char err[8192];
+            size_t n;
             lex_buf[lex_len] = '\0';
-            n += snprintf(err + n, sizeof(err) - n, "%s.%c", lex_buf, (char)nc);
+            n = strlen(lex_buf);
+            memcpy(err, lex_buf, n + 1);
+            anexar_fragmento(err, sizeof(err), &n, '.');
+            anexar_fragmento(err, sizeof(err), &n, (char)nc);
             int mc;
             while ((mc = leer_caracter()) != EOF &&
                    (isdigit((unsigned char)mc) || mc == '.' || isalpha((unsigned char)mc))) {
                 /* si aparece letra también es E2; cortar en separador real */
                 if (mc == '.' || isalpha((unsigned char)mc)) {
                     /* consumir resto alfanumérico/puntos para un solo diagnóstico */
-                    if (n < (int)sizeof(err) - 1) err[n++] = (char)mc;
+                    anexar_fragmento(err, sizeof(err), &n, (char)mc);
                     int qc;
                     while ((qc = leer_caracter()) != EOF && (isalnum((unsigned char)qc) || qc == '.')) {
-                        if (n < (int)sizeof(err) - 1) err[n++] = (char)qc;
+                        anexar_fragmento(err, sizeof(err), &n, (char)qc);
                     }
                     if (qc != EOF) unread_char(qc);
                     break;
                 }
-                if (n < (int)sizeof(err) - 1) err[n++] = (char)mc;
+                anexar_fragmento(err, sizeof(err), &n, (char)mc);
             }
             if (mc != EOF && !(mc == '.' || isalpha((unsigned char)mc))) unread_char(mc);
-            err[n] = '\0';
             lex_error_code = 2;
             snprintf(lex_error_msg, sizeof(lex_error_msg), "Constante numerica mal formada");
             strncpy(yy_lexema, err, sizeof(yy_lexema) - 1);
-            yy_linea = tok_line_ini; yy_col_ini = tok_col_ini; yy_col_fin = tok_col_ini + n - 1;
+            yy_lexema[sizeof(yy_lexema) - 1] = '\0';
+            yy_linea = tok_line_ini; yy_col_ini = tok_col_ini;
+            yy_col_fin = tok_col_ini + (int)n - 1;
             skip_auto_unread = 1;
             return;
         }
@@ -447,20 +523,20 @@ int yylex(void) {
         estado = nuevo_estado[estado][col];
     }
 
-    if (estado == -2) return ERROR_LEXICO;
+    if (estado == -2) return devolver_error_lexico();
 
     /* estado == -1: token armado */
     if (!tuvo_prev) return 0;
     if (!skip_auto_unread && unread_mat[prev_estado][prev_col] == 1) unread_char(c);
 
-    if (lex_error_code != 0) return ERROR_LEXICO;
+    if (lex_error_code != 0) return devolver_error_lexico();
 
     int tok = (tok_pending != -1) ? tok_pending : token_matriz[prev_estado][prev_col];
     if (tok == -1) return 0; /* EOF normal desde estado 0 */
     if (tok == -2) {
         lex_error_code = 1;
         snprintf(lex_error_msg, sizeof(lex_error_msg), "Caracter no perteneciente al alfabeto lexico");
-        return ERROR_LEXICO;
+        return devolver_error_lexico();
     }
 
     /* publicar yy_lexema y ubicación */
@@ -486,7 +562,43 @@ int yylex(void) {
         yy_linea = op_start_line; yy_col_ini = op_start_col;
         yy_col_fin = op_start_col + (int)strlen(yy_lexema) - 1;
     }
+    if (lex_warning_code != 0) {
+        registrar_diagnostico(lex_warning_code, lex_warning_line,
+                              lex_warning_col, 1, lex_warning_msg,
+                              lex_warning_lexema);
+    }
     return tok;
+}
+
+/* Informa en orden los errores y advertencias registrados durante el análisis. */
+int informar_errores(void) {
+    int hubo_error_memoria = error_memoria_diagnosticos;
+
+    if (cantidad_diagnosticos > 0) {
+        fprintf(stderr, "Diagnosticos lexicos:\n");
+        for (size_t i = 0; i < cantidad_diagnosticos; i++) {
+            const DiagnosticoLexico *diagnostico = &diagnosticos[i];
+            fprintf(stderr, "%s E%d en %d:%d: %s (lexema: %s)\n",
+                    diagnostico->es_advertencia ? "Advertencia" : "Error",
+                    diagnostico->codigo, diagnostico->linea,
+                    diagnostico->columna, diagnostico->mensaje,
+                    diagnostico->lexema[0] == '\0'
+                        ? "<vacio>"
+                        : diagnostico->lexema);
+        }
+    }
+
+    free(diagnosticos);
+    diagnosticos = NULL;
+    cantidad_diagnosticos = 0;
+    capacidad_diagnosticos = 0;
+    error_memoria_diagnosticos = 0;
+
+    if (hubo_error_memoria) {
+        fprintf(stderr, "No se pudo reservar memoria para guardar diagnosticos lexicos\n");
+        return 1;
+    }
+    return 0;
 }
 
 /* Muestra los identificadores únicos recolectados durante el análisis. */
