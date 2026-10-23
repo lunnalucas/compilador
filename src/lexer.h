@@ -22,6 +22,8 @@ extern char lex_warning_lexema[21];
 /* Listo para Bison: misma firma que usará yyparse(). */
 void lexer_init(FILE *f);
 int yylex(void);
+/* Indica si se registraron errores léxicos durante el análisis actual. */
+int lexer_hubo_errores(void);
 /* Imprime al final los diagnósticos acumulados por las llamadas a yylex(). */
 int informar_errores(void);
 

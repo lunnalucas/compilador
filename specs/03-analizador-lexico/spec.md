@@ -19,29 +19,32 @@ En pseudocodigo:
 ```c
 yylex(){
 
-  estado = 0     // estado inicial
-  // estado_final = -1
-  // estado_error = -2
-  
-  while (estado != -1 and estado != -2) { //armamos el token
-    c = leer_caracter()   // guardo caracter leido
+  repetir {
+    estado = 0     // estado inicial
+    // estado_final = -1
+    // estado_error = -2
 
-    columna = get_evento(c)    // numero de columna en base a caracter leido
+    while (estado != -1 and estado != -2) { //armamos el token
+      c = leer_caracter()   // guardo caracter leido
 
-    proceso[estado][columna]    // ejecutamos la funcion correspondiente segun nuestra matriz de funciones
+      columna = get_evento(c)    // numero de columna en base a caracter leido
 
-    estado = nuevo_estado[estado][columna]    // guardamos el nuevo estado segun nuestra matriz
-  } //token construido
-  
-  si (unread == 1) {// verificamos segun nuestra matriz de unread si corresponde hacer unread
-    unread(c)
+      proceso[estado][columna]    // ejecutamos la funcion correspondiente segun nuestra matriz de funciones
+
+      estado = nuevo_estado[estado][columna]    // guardamos el nuevo estado segun nuestra matriz
+    } //token construido
+
+    si (unread == 1) {// verificamos segun nuestra matriz de unread si corresponde hacer unread
+      unread(c)
+    }
+
+    si (estado == -2) {
+      registrar_error(codigo, fragmento, ubicacion)
+      continuar // buscar el siguiente lexema; no entregar el error al consumidor
+    }
+
+    retornar token_matriz[estado][columna]  // token valido o EOF
   }
-
-  si (estado == -2){ //
-      retornar ERROR_LEXICO
-  } 
-
-  retornar token_matriz[estado][columna]  // retornamos token segun la matriz de tokens
 }
 ```
 
@@ -61,19 +64,14 @@ main(){ // para probar el analizador lexico
     retornar 1
   }
 
-  error_detectado = 0
-
-  while (not fin_archivo(archivo)){
+  mientras (verdadero) {
     token = yylex()   // llamo al AL y guardo el token
 
-    si (token == ERROR_LEXICO){
-      error_detectado =  1
-    }
-    sino {
-      imprimir_token() //Debe mostrar LINEA, CODIGO DE TOKEN, TOKEN, LEXEMA, POSICION INICIO DEL LEXEMA
-    }
+    si (token == EOF) romper
+    imprimir_token() //Debe mostrar LINEA, CODIGO DE TOKEN, TOKEN, LEXEMA, POSICION INICIO DEL LEXEMA
   }
   cerrar_archivo(archivo)
+  error_detectado = lexer_hubo_errores()
 
   si (error_detectado == 0) {
     imprimir("Compilacion exitosa")
@@ -91,8 +89,8 @@ Cada llamada consume caracteres hasta formar el siguiente lexema, actualiza el
 valor semántico y la ubicación asociada, y devuelve el código de token definido
 en `specs/01-diseno/spec.md`. Los espacios, tabuladores, saltos de línea y
 comentarios se consumen y no generan tokens. Los errores léxicos se notifican
-mediante el mecanismo de diagnóstico del compilador, el lexer no debe devolver
-un token válido para un lexema inválido.
+mediante el mecanismo de diagnóstico del compilador; después de registrar un
+error, `yylex()` continúa buscando y devuelve el siguiente token válido o EOF.
 
 ### 1.1 Entrada, salida y estado persistente
 
@@ -453,11 +451,12 @@ registrar_error(codigo, fragmento, ubicacion) {
 
 yylex() {
 
-  si (se_detecto_un_error) {
+  mientras (se_detecto_un_error) {
     registrar_error(codigo, fragmento, ubicacion)
-    retornar ERROR_LEXICO
+    volver a buscar el siguiente lexema
   }
 
+  retornar solamente un token valido o EOF
 }
 
 informar_errores() {

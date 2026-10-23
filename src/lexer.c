@@ -54,11 +54,13 @@ static DiagnosticoLexico *diagnosticos = NULL;
 static size_t cantidad_diagnosticos = 0;
 static size_t capacidad_diagnosticos = 0;
 static int error_memoria_diagnosticos = 0;
+static int hubo_errores_lexicos = 0;
 
 /* Conserva una copia del diagnóstico para informarlo al final en orden. */
 static void registrar_diagnostico(int codigo, int linea, int columna,
                                   int es_advertencia, const char *mensaje,
                                   const char *lexema) {
+    if (!es_advertencia) hubo_errores_lexicos = 1;
     if (error_memoria_diagnosticos) return;
 
     if (cantidad_diagnosticos == capacidad_diagnosticos) {
@@ -99,7 +101,7 @@ static void anexar_fragmento(char *fragmento, size_t capacidad, size_t *longitud
     }
 }
 
-/* Registra el error actual exactamente una vez antes de devolverlo a main. */
+/* Registra el error actual exactamente una vez antes de reintentar el análisis. */
 static int devolver_error_lexico(void) {
     registrar_diagnostico(lex_error_code, yy_linea, yy_col_ini, 0,
                           lex_error_msg, yy_lexema);
@@ -134,6 +136,7 @@ void lexer_init(FILE *f) {
     cantidad_diagnosticos = 0;
     capacidad_diagnosticos = 0;
     error_memoria_diagnosticos = 0;
+    hubo_errores_lexicos = 0;
     lex_fp = f;
     cur_line = 1; cur_col = 1; last_line = 1; last_col = 1;
     pb_valid = 0; lex_len = 0; tok_pending = -1;
@@ -484,7 +487,7 @@ void ERROR(int c) {
 
 
 /* Recorre las matrices hasta formar un token, un diagnóstico o llegar a EOF. */
-int yylex(void) {
+static int yylex_intentar_token(void) {
     if (!lex_fp) return 0;
     tok_pending = -1;
     lex_error_code = 0; lex_error_msg[0] = '\0';
@@ -568,6 +571,20 @@ int yylex(void) {
                               lex_warning_lexema);
     }
     return tok;
+}
+
+/* Omite lexemas inválidos y solo entrega tokens válidos o EOF al consumidor. */
+int yylex(void) {
+    int tok;
+    do {
+        tok = yylex_intentar_token();
+    } while (tok == ERROR_LEXICO);
+    return tok;
+}
+
+/* Indica si hubo errores léxicos, incluso cuando yylex() los omitió. */
+int lexer_hubo_errores(void) {
+    return hubo_errores_lexicos;
 }
 
 /* Informa en orden los errores y advertencias registrados durante el análisis. */

@@ -37,6 +37,7 @@
 #define CADENA      132
 
 #define YYEOF 0
+/* Marcador interno del lexer; yylex() lo omite y nunca lo entrega al parser. */
 #define ERROR_LEXICO -1
 
 const char *token_nombre(int tok);

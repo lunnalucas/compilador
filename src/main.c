@@ -57,21 +57,17 @@ int main(int argc, char *argv[]) {
 
     imprimir_encabezado(stdout);
     imprimir_encabezado(fout);
-    int error_detectado = 0;
     int token;
     while ((token = yylex()) != 0) {
-        if (token == ERROR_LEXICO) {
-            error_detectado = 1;
-        } else {
-            imprimir_token(fout, yy_linea, token, token_nombre(token),
-                           yy_lexema, yy_col_ini);
-            imprimir_token(stdout, yy_linea, token, token_nombre(token),
-                           yy_lexema, yy_col_ini);
-        }
+        imprimir_token(fout, yy_linea, token, token_nombre(token),
+                       yy_lexema, yy_col_ini);
+        imprimir_token(stdout, yy_linea, token, token_nombre(token),
+                       yy_lexema, yy_col_ini);
     }
     fclose(archivo);
     fclose(fout);
 
+    int error_detectado = lexer_hubo_errores();
     fflush(stdout);
     if (informar_errores() != 0) return 1;
 
