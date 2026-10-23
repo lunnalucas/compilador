@@ -202,3 +202,22 @@ Separar las tablas del autómata para dejar el código fuente limpio y legible, 
 
 **Impacto en el proyecto:** 
 Se logró una arquitectura de código modular y sumamente limpia que respeta por completo las pautas de diseño y la nueva especificación de manejo de errores, dejando el analizador léxico listo y sólido para integrar la siguiente fase del compilador.
+
+**Iteración 7 — Refactorización de yylex() como filtro silencioso para el analizador sintáctico**
+**Fecha:** 24/10/2026 · GitHub Copilot (IA integrada en Visual Studio Code)
+
+**Qué pedí:** 
+Refactorizar el analizador léxico para que funcione como un filtro "silencioso" e integrado con el analizador sintáctico (parser). yylex() debe encargarse de recuperar internamente los errores léxicos, continuar escaneando hasta encontrar un token válido o el fin de archivo (EOF), y entregar únicamente una tira de tokens limpios al consumidor, acumulando los errores de forma interna para un reporte diagnóstico final.
+
+**Qué se hizo:**
+- **Modificación de yylex() (`src/lexer.c`):** Se adaptó el bucle interno de análisis para que, al detectar un error léxico, lo registre en la estructura de diagnósticos, descarte el fragmento inválido y continúe ejecutando iteraciones internamente hasta dar con un token válido o EOF. Ya no se retorna el código ERROR_LEXICO al exterior.
+- **Actualización de la interfaz y contrato (`src/lexer.h`, `src/tokens.h`):** Se aseguró que el consumidor (analizador sintáctico o el main de pruebas) reciba exclusivamente tokens válidos o 0 al finalizar.
+- **Adaptación del controlador principal (`src/main.c`):** Se actualizó el bucle del main para procesar únicamente los tokens limpios devueltos por yylex(), mientras que al finalizar la lectura se consulta de manera independiente si hubo errores léxicos para emitir el veredicto final.
+
+**Impacto en la spec (`specs/03-analizador-lexico/spec.md`):**
+- Se actualizó el pseudocódigo de yylex() para reflejar que el lexer reanuda la búsqueda automáticamente tras registrar un error léxico, eliminando la emisión de ERROR_LEXICO al parser.
+- Se especificó formalmente que la interfaz del lexer entrega únicamente tokens válidos o EOF.
+- Se ajustaron el ejemplo de integración en el main y el pseudocódigo de la sección de diagnósticos para reflejar el almacenamiento interno de errores y el flujo de filtrado continuo.
+
+**Estado al cierre de la iteración:**
+El analizador léxico cumple plenamente con su rol de filtro autónomo. La tira de tokens que entrega está completamente libre de interferencias por errores léxicos, los cuales quedan debidamente recopilados y ordenados para su reporte final, dejando el lexer listo para la conexión con el analizador sintáctico.
