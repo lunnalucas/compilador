@@ -1,23 +1,23 @@
-real calcularSuma(entero a, real b){
-  retornar (a+b);
+entero suma(entero a, real b) {
+  retornar (a + b);
 }
 
 inicio {
-  entero $ = 1E0;
-  real y = 2.;5;
-  entero i, resultado;
+  entero x = 1;
+  real y = 2.0;
 
-  resultado = calcularSuma(x,y);
-  impr#mir ("Resultado truncado");
-  imprimir (resultado);#
+  x = suma(x, y);
 
-  para (i=6 ; i>=0 & x>5 ; 2){
-    si(i == 0){
-      imprimir("Llegamos a cero");
-    }
-    sino{
-      imprimir("Valor actual de i");
-      imprimir(i);
-    }
+  imprimir("Resultado", x);
+
+  si (x == 1) {
+    imprimir(x);
+  }
+  sino {
+    imprimir("Otro valor");
+  }
+
+  para (entero i = 0; i < 5; 1) {
+    imprimir(i);
   }
 }

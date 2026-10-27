@@ -64,3 +64,14 @@
 - **Estado al cierre de la iteración:**
   - El compilador no aborta y analiza todo el archivo, pero la resincronización actual corrompe la lectura inmediatamente posterior al primer error.
   - **Queda pendiente:** Ajustar la regla de recuperación para que conserve el token donde se detectó el error y permita reanudar el análisis desde esa misma palabra reservada o instrucción.
+
+
+## Iteración 5 - Crear nuevamente el Analizador Sintactico
+
+- **Qué pedí:** Crear el archivo parser.y para el analizador sintactico basandote en `./specs/04-analizador-sintactico` teniendo en cuenta el codigo del analizador lexico y las etapas anteriores.
+
+Quiero que traduzcas los tokens y reglas gramaticales al formato que pide bison. Quiero una funcion main para probar el analizador sintactico, se debe adjuntar un programa de mi lenguaje para verificar la sintaxis del programa. Dentro de esta funcion main se deben consumir los tokens que genera `yylex()`.
+
+- **Qué se hizo:** Se creo el archivo `parser.y` para crear el parser.
+
+- **Estado al cierre de la iteración:** Analizador sintactico completo.
