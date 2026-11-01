@@ -26,6 +26,8 @@ gramaticales del lenguaje BETA.
   * Definición e invocación de funciones (máximo 2 parámetros, sin llamadas recursivas).
   * Salida por pantalla (`imprimir`).
 * **Integración:** Interfaz directa entre `yyparse()` y el consumidor del lexer (`yylex()`).
+* - **Manejo de Errores y Recuperación (Panic Mode):** El analizador sintáctico no debe abortar en el primer error. Ante un fallo, registrará el tipo de error específico, la línea exacta y aplicará recuperación por pánico (`Panic Mode`) sincronizando en delimitadores seguros (`;` o `}`) para continuar procesando todo el archivo.
+- **Trazabilidad del Proceso de Parsing:** Visualización y registro detallado de las operaciones del autómata LR (*shift* y *reduce*) mediante la directiva de depuración de Bison, volcando la salida a consola y al archivo de log correspondiente.
 * **Fuera del alcance:** Codigo intermedio - Código Assembler.
 
 ## 3. Entrada / Salida
@@ -34,24 +36,28 @@ gramaticales del lenguaje BETA.
 |---|---|
 | Entrada | Secuencia de `int` devueltos por `yylex()`: 100-132 según `01-diseno/spec.md §4`. |
 | Salida principal | `0` si el programa es gramaticalmente válido, `!= 0` si hay error sintáctico. |
+**Archivos de Salida / Reportes** | - `parser.tab.c` / `parser.tab.h`: Código fuente y cabeceras generadas por Bison.<br>- `parser_debug.log`: Archivo de registro con la traza completa de las acciones *shift/reduce* del parser.<br>- Reporte en consola: Listado detallado de errores encontrados con su línea y descripción, finalizando con el veredicto (`"compilación completa con errores"` o `"compilación completa sin errores"`).
 
-El analizador sintactico se implementa de la siguiente manera (pseudocodigo):
-
+Flujo del Main (Pseudocódigo de ejecución)
 ```c
-
-int main() {
-
-    archivo = leer_archivo("archivo.beta", "r");
-
-    mientras (archivo != vacio) {
-        yyparse()
+int main(int argc, char *argv[]) {
+    // Inicialización de archivos y depuración
+    yydebug = 1; // Habilita traza shift/reduce
+    FILE *archivo = abrir_archivo(argv[1]);
+    
+    // Invocación del parser
+    int resultado = yyparse();
+    
+    // Verificación de acumulación de errores y reporte final
+    if (tiene_errores_sintacticos()) {
+        printf("compilacion completa con errores\n");
+        imprimir_reporte_errores_acumulados();
+    } else {
+        printf("compilacion completa sin errores\n");
     }
-
-    archivo.close();
-
-    si (archivo con errores) { print("compilacion completa con errores"); informar_errores(); }
-    else { print("compilacion completa sin errores"); }
-
+    
+    cerrar_archivo(archivo);
+    return resultado;
 }
 
 ```
@@ -68,133 +74,15 @@ Algunos resultados esperados:
 | S1 | Gramática | Copia literal de `01-diseno/spec.md §6`, transcripta a sintaxis Bison (§6). Sin agregar ni quitar producciones. |
 | S2 | Gramatica | Recursion y asociatividad a la izquierda |
 | S3 | Funciones | 1 o 2 parametros. 0 parametros o 3+ parametros es E10/E9. `inicio` es `<principal> ::= INICIO bloque_i`, sin parametros ni retorno; solo puede aparecer una vez (§6.3). |
-| S5 | `imprimir` | Lista vacía `imprimir()` es E5. |
+| S4 | Manejo de Errores Específico y Recuperación** | Se implementarán reglas de recuperación explícitas basadas en puntos de sincronización (`;` y `}`). Ante una sentencia inválida, el parser invocará la rutina de error específica, reportando el fallo sin abortar, descartando tokens hasta encontrar el delimitador y reanudando el análisis. |
+| S5 | Estructura de Acumulación de Errores** | Se utilizará una estructura de datos modular (lista/tabla de registros) que almacene dinámicamente por cada incidencia: código de error, número de línea exacto y descripción asociada, permitiendo un volcado consolidado al finalizar el archivo. |
+| S6 | Trazabilidad (Debug)** | Se habilitará `%define parse.trace` en Bison y se configurará la variable global `yydebug = 1` para auditar las transiciones *shift/reduce* enviándolas a `parser_debug.log`. |
 
 ## 5. Tokens
+Tomaremos los tokens ya definidos de  `01-diseno/spec.md §6`
 
-| Código | Token | Lexema |
-|--------|--------|-------------|
-| 100 | `ID` | identificador (máx. 20 caracteres) |
-| 101 | `CTE_E` | constante entera |
-| 102 | `CTE_R` | constante real |
-| 103 | `INICIO` | `inicio` |
-| 104 | `ENTERO` | `entero` |
-| 105 | `REAL` | `real` |
-| 106 | `SI` | `si` |
-| 107 | `SINO` | `sino` |
-| 108 | `PARA` | `para` |
-| 109 | `IMPRIMIR` | `imprimir` |
-| 110 | `RETORNAR` | `retornar` |
-| 111 | `ASIG` | `=` |
-| 112 | `IGUAL` | `==` |
-| 113 | `DISTINTO` | `!=` |
-| 114 | `MENOR` | `<` |
-| 115 | `MAYOR` | `>` |
-| 116 | `MENOR_IGUAL` | `<=` |
-| 117 | `MAYOR_IGUAL` | `>=` |
-| 118 | `AND` | `&` |
-| 119 | `OR` | `\|` |
-| 120 | `SUMA` | `+` |
-| 121 | `RESTA` | `-` |
-| 122 | `PRODUCTO` | `*` |
-| 123 | `DIVISION` | `/` |
-| 124 | `PAR_ABRE` | `(` |
-| 125 | `PAR_CIERRA` | `)` |
-| 126 | `LLAVE_ABRE` | `{` |
-| 127 | `LLAVE_CIERRA` | `}` |
-| 128 | `P_COMA` | `;` |
-| 129 | `COMA` | `,` |
-| 130 | `PUNTO` | `.` |
-| 131 | `COMILLA` | `"` |
-| 132 | `CADENA` | cadena de caracteres delimitada por comillas dentro de la funcion `IMPRIMIR` |
-
-## 6. Gramática (copia de `01-diseno/spec.md §6`)
-
-```
-<programa>            ::= <unidades> <principal>
-                        | <principal>
-
-<principal>           ::= INICIO <bloque_i>
-
-<unidades>            ::= <unidades> <unidad>
-                        | <unidad>
-
-<unidad>              ::= <tipo> ID '(' <parametros> ')' <bloque>
-
-<parametros>          ::= <tipo> ID
-                        | <tipo> ID ',' <tipo> ID
-
-<bloque>              ::= '{' <sentencias> '}'
-
-<bloque_i>            ::= '{' <sentencias_i> '}'
-
-<sentencias_i>        ::= <sentencias_i> <sentencia_i>
-                        | <sentencia_i>
-
-<sentencia_i>         ::= <declaracion> | <asignacion> | <seleccion> | <bucle> | <salida>
-
-<sentencias>          ::= <sentencias> <sentencia>
-                        | <sentencia>
-
-<sentencia>           ::= <declaracion> | <asignacion> | <seleccion> | <bucle> | <salida> | <retorno>
-
-<declaracion>         ::= <tipo> ID '=' <expresion> ';'
-                        | <tipo> <ids> ';'
-                        | <tipo> ID ';'
-
-<ids>                 ::= <ids> ',' ID
-                        | ID
-
-<asignacion>          ::= ID '=' <expresion> ';'
-                        | ID '=' <invocacion> ';'
-
-<invocacion>          ::= ID '(' <argumentos> ')'
-
-<seleccion>           ::= SI '(' <condicional> ')' <bloque> 
-                        | SI '(' <condicional> ')' <bloque> SINO <bloque>
-
-<condicional>         ::= <condicional> OR <t_condicional>
-                        | <t_condicional>
-
-<t_condicional>       ::= <t_condicional> AND <f_condicional>
-                        | <f_condicional>
-
-<f_condicional>       ::= <condicion>
-                        | '(' <condicional> ')'
-
-<condicion>           ::= <expresion> <comparador> <expresion>
-
-<comparador>          ::= IGUAL | DISTINTO | MENOR | MAYOR | MENOR_IGUAL | MAYOR_IGUAL
-
-<bucle>               ::= PARA '(' <control> ';' <condicional> ';' CTE_E ')' <bloque>
-
-<control>             ::= ENTERO ID '=' CTE_E
-                        | ID '=' CTE_E
-
-<salida>              ::= IMPRIMIR '(' <elementos_salida> ')' ';'
-
-<elementos_salida>    ::= <elementos_salida> ',' <elemento_salida>
-                        | <elemento_salida>
-
-<elemento_salida>      ::= CADENA | <expresion> | <invocacion>
-                        
-<retorno>             ::= RETORNAR <expresion> ';'
-
-<argumentos>          ::= <expresion> ',' <expresion>
-                        | <expresion>
-
-<expresion>           ::= <expresion> '+' <termino>
-                        | <expresion> '-' <termino>
-                        | <termino>
-
-<termino>             ::= <termino> '*' <factor>
-                        | <termino> '/' <factor>
-                        | <factor>
-
-<factor>              ::= ID | CTE_E | CTE_R | '(' <expresion> ')'
-
-<tipo>                ::= ENTERO | REAL
-```
+## 6. Gramática 
+Tomaremos la gramatica de  `01-diseno/spec.md §6`
 
 ### 6.1 Restricciones sintacticas
 
@@ -216,8 +104,19 @@ fueron emitidos antes.
 | E9 | definición o llamada con más de 2 parámetros/argumentos | `Error E9: la funcion 'f' supera el maximo de 2 parametros/argumentos` |
 | E10 | definición de función sin parámetros (`f()`) | `Error E10: la funcion 'f' debe tener 1 o 2 parametros` |
 
+** 7.1 Casos de Prueba Requeridos:**
+- **Programas Correctos:**
+  1. `pruebaCorrecto01.beta`: Valida expresiones, asignaciones, estructuras `si/sino` y bucles `para`.
+  2. `pruebaCorrecto02.beta`: Valida definición de funciones con 1 y 2 parámetros e invocaciones correctas.
+  3. `pruebaCorrecto03.beta`: Programa integral combinando funciones, estructuras de control anidadas y bloque `inicio`.
+- **Programas Incorrectos (Validación de Panic Mode y Acumulación):**
+  1. `pruebaIncorrecto01.beta`: Contiene múltiples errores E5 (sentencias malformadas) dispersas para verificar la recuperación en `;` y `}` sin abortar.
+  2. `pruebaIncorrecto02.beta`: Contiene errores de cantidad de parámetros en funciones (E9 y E10).
+  3. `pruebaIncorrecto03.beta`: Mezcla de errores sintácticos variados (E5, E9, E10) para comprobar el reporte consolidado al final.
+
 ## 8. Criterios de Aceptación
 El Analizador Sintáctico se considerará aceptado cuando:
 1. El archivo `src/parser.y` compile limpiamente con Bison (`bison -d src/parser.y -o src/parser.tab.c`) generando las cabeceras requeridas sin conflictos.
 2. Reconozca la totalidad de las reglas gramaticales BNF (§6) consumiendo iterativamente los tokens `100–132` desde `yylex()`.
-3. Reporte de forma precisa los errores sintácticos descritos en la sección 7 (`E5`, `E9` y `E10`)
+3. Aplique con éxito el manejo de errores específico y la recuperación por pánico (`Panic Mode`), acumulando y listando los errores al finalizar.
+4. Genere la traza del proceso de parsing (`shift/reduce`) en consola y en el archivo `parser_debug.log`.
