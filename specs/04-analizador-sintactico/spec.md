@@ -104,7 +104,7 @@ fueron emitidos antes.
 | E9 | definición o llamada con más de 2 parámetros/argumentos | `Error E9: la funcion 'f' supera el maximo de 2 parametros/argumentos` |
 | E10 | definición de función sin parámetros (`f()`) | `Error E10: la funcion 'f' debe tener 1 o 2 parametros` |
 
-** 7.1 Casos de Prueba Requeridos:**
+### 7.1 Casos de Prueba Requeridos:
 - **Programas Correctos:**
   1. `pruebaCorrecto01.beta`: Valida expresiones, asignaciones, estructuras `si/sino` y bucles `para`.
   2. `pruebaCorrecto02.beta`: Valida definición de funciones con 1 y 2 parámetros e invocaciones correctas.
