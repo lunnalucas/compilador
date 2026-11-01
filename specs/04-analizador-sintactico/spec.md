@@ -25,7 +25,7 @@ gramaticales del lenguaje BETA.
   * Asignaciones y expresiones aritmético-lógicas.
   * Definición e invocación de funciones (máximo 2 parámetros, sin llamadas recursivas).
   * Salida por pantalla (`imprimir`).
-* **Integración:** Interfaz directa entre `yyparse()` y el consumidor del lexer (`yylex()`).
+* **Integración Léxico-Sintáctica:** Interfaz directa y explícita entre `yyparse()` (Bison) y el analizador léxico desarrollado previamente (`yylex()`), el cual le suministra de forma iterativa los códigos de tokens (100–132) y sus atributos mediante la variable global de comunicación.
 * - **Manejo de Errores y Recuperación (Panic Mode):** El analizador sintáctico no debe abortar en el primer error. Ante un fallo, registrará el tipo de error específico, la línea exacta y aplicará recuperación por pánico (`Panic Mode`) sincronizando en delimitadores seguros (`;` o `}`) para continuar procesando todo el archivo.
 - **Trazabilidad del Proceso de Parsing:** Visualización y registro detallado de las operaciones del autómata LR (*shift* y *reduce*) mediante la directiva de depuración de Bison, volcando la salida a consola y al archivo de log correspondiente.
 * **Fuera del alcance:** Codigo intermedio - Código Assembler.
@@ -74,9 +74,10 @@ Algunos resultados esperados:
 | S1 | Gramática | Copia literal de `01-diseno/spec.md §6`, transcripta a sintaxis Bison (§6). Sin agregar ni quitar producciones. |
 | S2 | Gramatica | Recursion y asociatividad a la izquierda |
 | S3 | Funciones | 1 o 2 parametros. 0 parametros o 3+ parametros es E10/E9. `inicio` es `<principal> ::= INICIO bloque_i`, sin parametros ni retorno; solo puede aparecer una vez (§6.3). |
-| S4 | Manejo de Errores Específico y Recuperación** | Se implementarán reglas de recuperación explícitas basadas en puntos de sincronización (`;` y `}`). Ante una sentencia inválida, el parser invocará la rutina de error específica, reportando el fallo sin abortar, descartando tokens hasta encontrar el delimitador y reanudando el análisis. |
-| S5 | Estructura de Acumulación de Errores** | Se utilizará una estructura de datos modular (lista/tabla de registros) que almacene dinámicamente por cada incidencia: código de error, número de línea exacto y descripción asociada, permitiendo un volcado consolidado al finalizar el archivo. |
-| S6 | Trazabilidad (Debug)** | Se habilitará `%define parse.trace` en Bison y se configurará la variable global `yydebug = 1` para auditar las transiciones *shift/reduce* enviándolas a `parser_debug.log`. |
+| S4 | Manejo de Errores Específico y Recuperación| Se implementarán reglas de recuperación explícitas basadas en puntos de sincronización (`;` y `}`). Ante una sentencia inválida, el parser invocará la rutina de error específica, reportando el fallo sin abortar, descartando tokens hasta encontrar el delimitador y reanudando el análisis. |
+| S5 | Estructura de Acumulación de Errores| Se utilizará una estructura de datos modular (lista/tabla de registros) que almacene dinámicamente por cada incidencia: código de error, número de línea exacto y descripción asociada, permitiendo un volcado consolidado al finalizar el archivo. |
+| S6 | Trazabilidad (Debug)| Se habilitará `%define parse.trace` en Bison y se configurará la variable global `yydebug = 1` para auditar las transiciones *shift/reduce* enviándolas a `parser_debug.log`. |
+| S7 | Interfaz con el Analizador Léxico| El parser invocará de forma estándar la función `yylex()` provista por el módulo léxico previo (`lexico.c`). La comunicación de tokens se realizará mediante el valor de retorno de `yylex()` y el uso de variables globales de soporte (como `yylval`), garantizando que no se utilicen generadores por defecto sino la implementación propia de la parte lexica de nuestro trabajo|
 
 ## 5. Tokens
 Tomaremos los tokens ya definidos de  `01-diseno/spec.md §6`
@@ -105,6 +106,8 @@ fueron emitidos antes.
 | E10 | definición de función sin parámetros (`f()`) | `Error E10: la funcion 'f' debe tener 1 o 2 parametros` |
 
 ### 7.1 Casos de Prueba Requeridos:
+Estos programas de prueba deben ser creados teniendo en cuenta las especificaciones de nuestro lenguaje BETA 
+provistos en `01-diseno/spec.md §6`
 - **Programas Correctos:**
   1. `pruebaCorrecto01.beta`: Valida expresiones, asignaciones, estructuras `si/sino` y bucles `para`.
   2. `pruebaCorrecto02.beta`: Valida definición de funciones con 1 y 2 parámetros e invocaciones correctas.
