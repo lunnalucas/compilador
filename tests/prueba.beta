@@ -1,23 +1,5 @@
-entero suma(entero a, real b) {
-  retornar (a + b);
-}
-
 inicio {
-  entero x = 1;
-  real y = 2.0;
+  entero x = ;
+  real y = ;
 
-  x = suma(x, y);
-
-  imprimir("Resultado", x);
-
-  si (x == 1) {
-    imprimir(x);
-  }
-  sino {
-    imprimir("Otro valor");
-  }
-
-  para (entero i = 0; i < 5; 1) {
-    imprimir(i);
-  }
 }

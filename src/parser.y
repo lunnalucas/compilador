@@ -1,13 +1,98 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "lexer.h"
+#ifdef _WIN32
+#include <io.h>
+extern int _fileno(FILE *);
+#else
+#include <unistd.h>
+#endif
 
-#define yyerror(mensaje) fprintf(stderr, "Error E5: %s\n", (mensaje))
+typedef struct {
+    int codigo;
+    int linea;
+    int columna;
+    char mensaje[256];
+} ErrorSintactico;
+
+static ErrorSintactico *errores = NULL;
+static size_t cantidad_errores = 0;
+static size_t capacidad_errores = 0;
+static int error_memoria = 0;
+
+static void registrar_error(int codigo, const char *mensaje) {
+    if (cantidad_errores == capacidad_errores) {
+        size_t nueva = capacidad_errores == 0 ? 8 : capacidad_errores * 2;
+        ErrorSintactico *tmp = realloc(errores, nueva * sizeof(*errores));
+        if (tmp == NULL) {
+            error_memoria = 1;
+            return;
+        }
+        errores = tmp;
+        capacidad_errores = nueva;
+    }
+    errores[cantidad_errores].codigo = codigo;
+    errores[cantidad_errores].linea = yy_linea;
+    errores[cantidad_errores].columna = yy_col_ini;
+    snprintf(errores[cantidad_errores].mensaje,
+             sizeof(errores[cantidad_errores].mensaje), "%s", mensaje);
+    cantidad_errores++;
+}
+
+static void informar_errores_sintacticos(void) {
+    for (size_t i = 0; i < cantidad_errores; i++) {
+        fprintf(stderr, "Error E%d en %d:%d: %s\n",
+                errores[i].codigo, errores[i].linea, errores[i].columna,
+                errores[i].mensaje);
+    }
+    if (error_memoria)
+        fprintf(stderr, "No se pudo reservar memoria para errores sintacticos\n");
+}
+
+static int errores_sintacticos(void) {
+    return cantidad_errores != 0 || error_memoria;
+}
+
+static void imprimir_traza(const char *nombre) {
+    FILE *archivo = fopen(nombre, "r");
+    char linea[1024];
+    if (archivo == NULL) return;
+    while (fgets(linea, sizeof(linea), archivo) != NULL)
+        fputs(linea, stdout);
+    fclose(archivo);
+}
+
+static void error_cantidad(const char *nombre, int cantidad) {
+    char mensaje[256];
+    if (cantidad == 0) {
+        snprintf(mensaje, sizeof(mensaje),
+                 "la funcion '%s' debe tener 1 o 2 parametros",
+                 nombre[0] ? nombre : "<desconocida>");
+        registrar_error(10, mensaje);
+    } else {
+        snprintf(mensaje, sizeof(mensaje),
+                 "la funcion '%s' supera el maximo de 2 parametros/argumentos",
+                 nombre[0] ? nombre : "<desconocida>");
+        registrar_error(9, mensaje);
+    }
+}
+
+void yyerror(const char *mensaje) {
+    registrar_error(5, mensaje);
+}
 %}
 
 %start programa
+%debug
 
-%token ID            100
+%union {
+    int cantidad;
+    char texto[8192];
+}
+
+%token <texto> ID    100
 %token CTE_E         101
 %token CTE_R         102
 %token INICIO        103
@@ -41,9 +126,12 @@
 %token COMILLA       131
 %token CADENA        132
 
+%type <cantidad> parametros argumentos
+
 %nonassoc LOWER_THAN_SINO
 %nonassoc SINO
 %nonassoc DECLARACION_ID
+%left COMA
 %nonassoc P_COMA
 
 %%
@@ -64,11 +152,14 @@ unidades
 
 unidad
     : tipo ID PAR_ABRE parametros PAR_CIERRA bloque
+      { if ($4 == 0 || $4 > 2) error_cantidad($2, $4); }
     ;
 
 parametros
-    : tipo ID
-    | tipo ID COMA tipo ID
+    : /* vacio */ { $$ = 0; }
+    | tipo ID { $$ = 1; }
+    | tipo ID COMA tipo ID { $$ = 2; }
+    | tipo ID COMA tipo ID COMA tipo ID { $$ = 3; }
     ;
 
 bloque
@@ -82,6 +173,8 @@ bloque_i
 sentencias_i
     : sentencias_i sentencia_i
     | sentencia_i
+    | sentencias_i error P_COMA
+    | error P_COMA
     ;
 
 sentencia_i
@@ -95,6 +188,8 @@ sentencia_i
 sentencias
     : sentencias sentencia
     | sentencia
+    | sentencias error P_COMA
+    | error P_COMA
     ;
 
 sentencia
@@ -124,6 +219,7 @@ asignacion
 
 invocacion
     : ID PAR_ABRE argumentos PAR_CIERRA
+      { if ($3 > 2) error_cantidad($1, $3); }
     ;
 
 seleccion
@@ -188,8 +284,8 @@ retorno
     ;
 
 argumentos
-    : expresion COMA expresion
-    | expresion
+    : expresion %prec COMA { $$ = 1; }
+    | argumentos COMA expresion { $$ = $1 + 1; }
     ;
 
 expresion
@@ -231,18 +327,58 @@ int main(int argc, char *argv[]) {
     }
 
     lexer_init(archivo);
+    yydebug = 1;
+
+    FILE *traza = fopen("parser_debug.log", "w");
+    if (traza == NULL) {
+        fprintf(stderr, "No se pudo crear parser_debug.log\n");
+        fclose(archivo);
+        return 1;
+    }
+
+#ifdef _WIN32
+    int stderr_copia = _dup(_fileno(stderr));
+    if (stderr_copia < 0 || _dup2(_fileno(traza), _fileno(stderr)) < 0) {
+        fprintf(stderr, "No se pudo redirigir la traza del parser\n");
+        fclose(traza);
+        fclose(archivo);
+        return 1;
+    }
+#else
+    int stderr_copia = dup(fileno(stderr));
+    if (stderr_copia < 0 || dup2(fileno(traza), fileno(stderr)) < 0) {
+        fprintf(stderr, "No se pudo redirigir la traza del parser\n");
+        fclose(traza);
+        fclose(archivo);
+        return 1;
+    }
+#endif
+
     int resultado_sintactico = yyparse();
+    fflush(stderr);
+#ifdef _WIN32
+    _dup2(stderr_copia, _fileno(stderr));
+    _close(stderr_copia);
+#else
+    dup2(stderr_copia, fileno(stderr));
+    close(stderr_copia);
+#endif
+    fclose(traza);
+
+    imprimir_traza("parser_debug.log");
+    informar_errores_sintacticos();
     int errores_lexicos = lexer_hubo_errores();
     int errores_informados = informar_errores();
-
     fclose(archivo);
 
-    if (resultado_sintactico != 0 || errores_lexicos != 0 ||
-        errores_informados != 0) {
+    if (resultado_sintactico != 0 || errores_sintacticos() ||
+        errores_lexicos != 0 || errores_informados != 0) {
         fprintf(stderr, "Compilacion completa con errores\n");
+        free(errores);
         return 1;
     }
 
     printf("Compilacion completa sin errores\n");
+    free(errores);
     return 0;
 }

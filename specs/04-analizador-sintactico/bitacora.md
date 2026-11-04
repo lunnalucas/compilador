@@ -75,3 +75,13 @@ Quiero que traduzcas los tokens y reglas gramaticales al formato que pide bison.
 - **Qué se hizo:** Se creo el archivo `parser.y` para crear el parser.
 
 - **Estado al cierre de la iteración:** Analizador sintactico completo.
+
+### Iteración 6 — Implementación de la especificación de errores y trazabilidad
+
+* Se incorporó una lista dinámica de errores sintácticos con código, línea,
+  columna y mensaje, manteniendo el análisis hasta `EOF`.
+* Se agregaron reglas de recuperación por pánico sincronizadas en `;` y se
+  habilitó la traza LR mediante `yydebug`, almacenada en `parser_debug.log` y
+  mostrada en consola.
+* Se implementaron los diagnósticos E9 y E10 para funciones y llamadas con
+  cantidades inválidas de parámetros o argumentos.

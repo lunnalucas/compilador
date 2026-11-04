@@ -4,9 +4,11 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-#include "tokens.h"
+#include "parser.tab.h"
 #include "lexer.h"
 #include "lexer_tables.h"
+
+#define ERROR_LEXICO -1
 
 /* ============ estado persistente ============ */
 char yy_lexema[8192];
@@ -564,6 +566,10 @@ static int yylex_intentar_token(void) {
         strncpy(yy_lexema, f ? f : "", sizeof(yy_lexema) - 1);
         yy_linea = op_start_line; yy_col_ini = op_start_col;
         yy_col_fin = op_start_col + (int)strlen(yy_lexema) - 1;
+    }
+    if (tok == ID) {
+        strncpy(yylval.texto, yy_lexema, sizeof(yylval.texto) - 1);
+        yylval.texto[sizeof(yylval.texto) - 1] = '\0';
     }
     if (lex_warning_code != 0) {
         registrar_diagnostico(lex_warning_code, lex_warning_line,
