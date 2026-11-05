@@ -9,8 +9,6 @@
 * `specs/03-analizador-lexico/spec.md`
 * `specs/04-analizador-sintactico/spec.md`
 
----
-
 ## 1. Objetivo
 
 El objetivo de este módulo es recibir el código intermedio (representado como un arreglo lineal de estructuras de Polaca Inversa) en conjunto con la Tabla de Símbolos, y traducirlo de manera estricta y sistemática a código fuente en lenguaje Assembler x86 (arquitectura de 32 bits, formato NASM). Este código generado debe ser completamente funcional, compatible con las restricciones estáticas del lenguaje Beta, y apto para ser ensamblado y linkeado mediante GCC en entornos Windows para su ejecución final.
@@ -45,7 +43,7 @@ Este módulo abarca estrictamente la etapa final de generación de código del c
 * 4.1. Plataforma y Entorno
   
 El código Assembler generado está diseñado para ejecutarse bajo los siguientes parámetros:
-   *   **Arquitectura:** x86 (32 bits).
+   * **Arquitectura:** x86 (32 bits).
    *   **Sintaxis:** NASM.
    *   **Entorno:** Windows, ensamblado y linkeado mediante GCC (MinGW).
 
