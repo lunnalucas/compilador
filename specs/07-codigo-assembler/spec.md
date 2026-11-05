@@ -3,7 +3,11 @@
 **Grupo:** B  
 **Lenguaje de implementación:** C  
 **Plataforma destino:** x86 (32 bits), NASM assembler, linkeado mediante GCC (MinGW) en Windows.  
-**Dependencias:** specs/01-diseno/spec.md, specs/02-tabla-simbolos/spec.md, specs/03-analizador-lexico/spec.md, specs/04-analizador-sintactico/spec.md.
+**Dependencias:** 
+* `specs/01-diseno/spec.md`
+* `specs/02-tabla-simbolos/spec.md`
+* `specs/03-analizador-lexico/spec.md`
+* `specs/04-analizador-sintactico/spec.md`
 
 ---
 
@@ -41,9 +45,9 @@ Este módulo abarca estrictamente la etapa final de generación de código del c
 * 4.1. Plataforma y Entorno
   
 El código Assembler generado está diseñado para ejecutarse bajo los siguientes parámetros:
-* **Arquitectura:** x86 (32 bits).
-* **Sintaxis:** NASM.
-* **Entorno:** Windows, ensamblado y linkeado mediante GCC (MinGW).
+   *   **Arquitectura:** x86 (32 bits).
+   *   **Sintaxis:** NASM.
+   *   **Entorno:** Windows, ensamblado y linkeado mediante GCC (MinGW).
 
 * 4.2. Modelo de memoria estática y variables
 
