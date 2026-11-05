@@ -40,14 +40,14 @@ Este módulo abarca estrictamente la etapa final de generación de código del c
 
 ## 4. Reglas y decisiones de diseño
 
-* 4.1. Plataforma y Entorno
-  
-El código Assembler generado está diseñado para ejecutarse bajo los siguientes parámetros:
-   * **Arquitectura:** x86 (32 bits).
-   *   **Sintaxis:** NASM.
-   *   **Entorno:** Windows, ensamblado y linkeado mediante GCC (MinGW).
+### 4.1. Plataforma Y Entorno
 
-* 4.2. Modelo de memoria estática y variables
+El código Assembler generado está diseñado para ejecutarse bajo los siguientes parámetros:
+  * **Arquitectura:** x86 (32 bits).
+  * **Sintaxis:** NASM.
+  * **Entorno:** Windows, ensamblado y linkeado mediante GCC (MinGW).
+
+### 4.2. Modelo de memoria estática y variables
 
 
 
