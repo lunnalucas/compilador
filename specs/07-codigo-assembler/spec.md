@@ -3,11 +3,7 @@
 **Grupo:** B  
 **Lenguaje de implementación:** C  
 **Plataforma destino:** x86 (32 bits), NASM assembler, linkeado mediante GCC (MinGW) en Windows.  
-**Dependencias:** 
-specs/01-diseno/spec.md
-specs/02-tabla-simbolos/spec.md
-specs/03-analizador-lexico/spec.md
-specs/04-analizador-sintactico/spec.md.
+**Dependencias:** specs/01-diseno/spec.md, specs/02-tabla-simbolos/spec.md, specs/03-analizador-lexico/spec.md, specs/04-analizador-sintactico/spec.md.
 
 ---
 
