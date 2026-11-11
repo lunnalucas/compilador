@@ -8,6 +8,7 @@
 * `specs/02-tabla-simbolos/spec.md`
 * `specs/03-analizador-lexico/spec.md`
 * `specs/04-analizador-sintactico/spec.md`
+* `specs/06-codigo-intermedio/spec.md`
 
 ## 1. Objetivo
 
@@ -31,14 +32,14 @@ Este módulo abarca estrictamente la etapa final de generación de código del c
 ## 3. Entradas / Salidas
 
 *   **Entradas:**
-  *   **Estructura de Polaca Inversa:** Arreglo lineal de celdas en memoria provisto por el módulo anterior. Cada celda contiene:
+     *   **Estructura de Polaca Inversa:** Arreglo lineal de celdas en memoria provisto por el módulo anterior. Cada celda contiene:
     * `tipo_de_celda`: Naturaleza del elemento (operador, operando, salto, etc.).
     * `opcode`: Operación a ejecutar (suma, asignación, `if`, etc.).
     * `referencia_ts`: Puntero o índice a la Tabla de Símbolos (si corresponde).
     * `tipo_de_dato`: Tipo de dato asociado al elemento.
     * `linea`: Número de línea en el código fuente original.
 
-  *   **Tabla de Símbolos:** Estructura con las variables, constantes y cadenas literales definidas en el código fuente.
+     *   **Tabla de Símbolos:** Estructura con las variables, constantes y cadenas literales definidas en el código fuente.
 
 *   **Salidas:**
     *   **Archivo de Código Assembler (`.asm`):** Archivo de texto fuente con las instrucciones en lenguaje ensamblador (x86, 32 bits, formato NASM) listo para ser compilado y ejecutado.
@@ -152,10 +153,74 @@ El lenguaje ensamblador x86 se ejecuta de manera secuencial, asi que el compilad
       
       .fin_para:          ; Fin del bucle
       ```
+      
+### 4.5. Generación de la sentencia de salida (`imprimir`)
 
-## 5. Plantilla base del código Assembler generado
+Dado que el lenguaje ensamblador x86 no cuenta con instrucciones nativas de E/S para consola, la sentencia `imprimir` se resuelve mediante la interoperabilidad con C, invocando a la función externa `printf` provista por la biblioteca estándar de MinGW/GCC.
 
-## 6. Criterios de aceptación
+El generador de código detecta los opcodes de impresión emitidos por la Polaca (`OP_PRINT_INT`, `OP_PRINT_REAL`, `OP_PRINT_STR`) y selecciona el formato adecuado (`"%d\n"`, `"%f\n"`, o `"%s\n"`) definido en la sección de datos.
+
+* **. Impresión de Enteros (`OP_PRINT_INT` - 32 bits / 4 bytes):**
+  - **Celda de Polaca:** `[ variable_entera ] | [ OP_PRINT_INT ]`
+  - **Traducción en Assembler (NASM):**
+    ```nasm
+    MOV eax, [variable_entera]  ; Carga el valor entero de 32 bits en EAX
+    PUSH eax                    ; Apila el valor como argumento para printf
+    PUSH format_int             ; Apila la dirección de la cadena de formato "%d\n"
+    CALL _printf                ; Llama a printf de C
+    ADD esp, 8                  ; Limpieza de la pila (2 argumentos de 4 bytes)
+    ```
+
+* **. Impresión de Reales (`OP_PRINT_REAL` - 64 bits / 8 bytes):**
+  Dado que un tipo `real` ocupa 64 bits, la convención `cdecl` requiere apilar los 8 bytes completos para que `printf` los interprete correctamente como un `double`.
+  - **Celda de Polaca:** `[ variable_real ] | [ OP_PRINT_REAL ]`
+  - **Traducción en Assembler (NASM):**
+    ```nasm
+    MOV eax, [variable_real + 4] ; Carga la parte alta (4 bytes superiores)
+    PUSH eax                     ; Apila la parte alta
+    MOV eax, [variable_real]     ; Carga la parte baja (4 bytes inferiores)
+    PUSH eax                     ; Apila la parte baja
+    PUSH format_real             ; Apila la dirección de la cadena de formato "%f\n"
+    CALL _printf                 ; Llama a printf de C
+    ADD esp, 12                  ; Limpieza de la pila (8 bytes del real + 4 bytes del formato)
+    ```
+
+* **. Impresión de Cadenas Literales (`OP_PRINT_STR`):**
+  La celda de tipo `CELDA_CADENA` provee el índice (`ref`) para invocar a la interfaz `cadena_obtener(ref)` de la tabla auxiliar de cadenas.
+  - **Celda de Polaca:** `[ STR[n] ] | [ OP_PRINT_STR ]`
+  - **Traducción en Assembler (NASM):**
+    ```nasm
+    PUSH str_literal_n           ; Puntero al texto literal recuperado de la TablaCadenas
+    PUSH format_str              ; Apila la dirección de la cadena de formato "%s\n"
+    CALL _printf                 ; Llama a printf de C
+    ADD esp, 8                   ; Limpieza de la pila (2 argumentos de 4 bytes)
+    ```
+
+   * **Sección de Datos de Soporte (`.data`):**
+  Para que `printf` funcione correctamente, el archivo ASM generado debe incluir estáticamente los especificadores de formato al inicio:
+  ```nasm
+  section .data
+      format_int  db "%d", 10, 0    ; Formato entero con salto de línea (\n = 10, NULL = 0)
+      format_real db "%f", 10, 0    ; Formato real con salto de línea
+      format_str  db "%s", 10, 0    ; Formato cadena con salto de línea
+
+### 4.6. Manejo de funciones, llamadas y retornos
+
+El lenguaje Beta permite definir funciones que reciben estrictamente **1 o 2 parámetros** (según la gramática) y devuelve un valor mediante la palabra clave `retornar`, además de la función principal `inicio` que no lleva parámetros. Su traducción a ensamblador se realiza de forma directa y lineal:
+
+- **Estructura de las funciones:**
+  Cada función delimitada en el código intermedio comienza y termina marcando su bloque (`FUNCION_INICIO` y `FUNCION_FIN`). Como nuestro modelo utiliza memoria estática, cada función se traduce como una rutina con su propia etiqueta en el archivo ASM, recibiendo de forma fija ese único o par de parámetros.
+
+- **La sentencia de retorno (`retornar` / `RET`):**
+  Cuando el compilador procesa la sentencia `retornar` del código fuente, se emite el `ret` de ensamblador para volver al punto donde fue llamada. Previamente, el valor que se quiere devolver se deja listo en el registro acumulador (`EAX`) para que pueda ser recuperado.
+
+- **Invocación de funciones (`CALL`):**
+  Cuando se invoca una función dentro de una expresión, como sabemos que la cantidad de argumentos es siempre de 1 o 2, la traducción sigue estos pasos sencillos:
+  1. Se evalúan y se apilan ordenadamente los 1 o 2 parámetros que exige la función.
+  2. Se ejecuta la instrucción de llamada (`CALL`) hacia la rutina correspondiente.
+  3. Una vez finalizada la llamada, el resultado se toma del registro `EAX` para asignarlo a la variable de destino que indicaba la polaca, y se limpia la pila de los parámetros utilizados.
+     
+## 5. Criterios de aceptación
 Para considerar que el módulo de Generación de Código Assembler es correcto y funcional, se deben cumplir los siguientes criterios de validación:
 
 *   **1. Consumo íntegro de la Polaca Inversa:** El módulo debe procesar la totalidad de los elementos provistos en el arreglo en memoria de la polaca, sin omitir instrucciones ni desfasar la pila o los registros.
@@ -163,3 +228,7 @@ Para considerar que el módulo de Generación de Código Assembler es correcto y
 *   **2. Generación sintáctica correcta del `.asm`:** El archivo de salida generado debe cumplir estrictamente con la sintaxis de NASM para x86 (32 bits), permitiendo su ensamblaje sin errores ni advertencias fatales mediante herramientas estándar (NASM/GCC en MinGW).
   
 *   **3. Registro de traza (Log):** El módulo debe generar correctamente el archivo de traza que documenta el paso a paso de la traducción y mostrarlo de forma legible en la consola al finalizar la ejecución exitosa del proceso.
+
+*   **4. Respeto de tipos y tamaños (Tabla de Símbolos):** El código generado debe asignar correctamente el espacio estático según el tipo (32 bits para enteros y 64 bits para reales), aplicando las inicializaciones por defecto estipuladas.
+
+*   **5. Interoperabilidad de E/S:** Las sentencias de impresión (`imprimir`) deben resolver de forma correcta el formato y el pasaje de argumentos a `printf` tanto para enteros, reales como para las cadenas literales.
