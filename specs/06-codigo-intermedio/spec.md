@@ -178,15 +178,13 @@ Reglas:
 
 ---
 
-## 5-GENERACIÓN DE CÓDIGO INTERMEDIO EN POLACA
+## 5-Reglas para generar la Polaca
 
 ## Reglas Generales de Construcción
 * **Estructura de la Polaca:** Se almacena en una lista o vector secuencial de pasos indexados por posición (`nro_paso`, iniciando en `0`). Cada celda de la polaca guarda tanto el elemento (operando, operador o instrucción) como su **tipo de dato asociado** (`entero`, `real` o vacío/sin tipo para saltos y etiquetas).
 * **Pila de Saltos:** Se utiliza una pila auxiliar de direcciones para almacenar las posiciones pendientes de salto (`BF` y `BI`) y rellenarlas posteriormente.
 * **Orden de Escritura:** Todo operando se escribe primero de forma secuencial y los operadores o instrucciones se escriben después.
 * **Regla de Paso:** Toda producción de la gramática que no figure en esta lista (como `<expresion> ::= <termino>`, `<termino> ::= <factor>`, `<f_condicional> ::= <condicion>`, `<bloque>`, etc.) no escribe nada en la polaca y simplemente hereda sin cambios lo generado y el tipo de su componente hijo.
-
----
 
 ### Programa y Funciones
 * **`<principal> ::= INICIO <bloque_i>`**
@@ -197,8 +195,6 @@ Reglas:
   * **Acción:** Escribe en la polaca el `ID` (con su `<tipo>`) y luego escribe en la polaca `PARAM` (con su `<tipo>`).
 * **`<parametros> ::= <tipo> ID ',' <tipo> ID`**
   * **Acción:** Escribe en la polaca el primer `ID` (con su `<tipo>`) seguido de `PARAM` (con su `<tipo>`), y luego el segundo `ID` (con su `<tipo>`) seguido de `PARAM` (con su `<tipo>`).
-
----
 
 ### Declaraciones y Asignaciones
 * **`<declaracion> ::= <tipo> ID '=' <expresion> ';'`**
@@ -212,13 +208,9 @@ Reglas:
 * **`<asignacion> ::= ID '=' <invocacion> ';'`**
   * **Acción:** Escribe en la polaca el `ID` de destino (con su tipo), genera la polaca de `<invocacion>`, aplica conversión de tipo si el tipo de retorno difiere del tipo del `ID`, y escribe en la polaca `=` (con el tipo del `ID`).
 
----
-
 ### Invocación de Funciones
 * **`<invocacion> ::= ID '(' <argumentos> ')'`**
   * **Acción:** Genera la polaca de `<argumentos>` (de izquierda a derecha), escribe en la polaca el `ID` de la función (con su tipo de retorno), y escribe en la polaca `CALL` indicando la cantidad de argumentos (1 o 2) y el tipo de retorno de la función.
-
----
 
 ### Expresiones Aritméticas y Operandos
 *(Regla de tipos: En cualquier operación aritmética binaria entre un `entero` y un `real`, el operando `entero` se promueve a `real` antes de operar y el resultado de la operación es de tipo `real`).*
@@ -233,7 +225,6 @@ Reglas:
 * **`<factor> ::= ID | CTE_E | CTE_R`**
   * **Acción:** Escribe directamente en la polaca el lexema o valor del `ID` (con su tipo registrado), `CTE_E` (con tipo `entero`) o `CTE_R` (con tipo `real`).
 
----
 ### Condicionales, Comparaciones y Lógica
 * **`<condicion> ::= <expresion> <comparador> <expresion>`**
   * **Acción:** Polaca de la primera `<expresion>`, polaca de la segunda `<expresion>` (si un operando es `entero` y el otro es `real`, el `entero` se promueve a `real`), y escribe en la polaca el operador relacional de `<comparador>` (`==`, `!=`, `<`, `>`, `<=`, `>=`) sin tipo.
@@ -242,18 +233,14 @@ Reglas:
 * **`<condicional> ::= <condicional> OR <t_condicional>`**
   * **Acción:** Polaca de `<condicional>`, polaca de `<t_condicional>`, y escribe en la polaca `|` (sin tipo).
 
----
 ### Estructura de Selección (`SI` / `SINO`)
 
----
 
 ### Estructura de Bucle (`PARA`)
 
----
 
 ### Salida e Impresión (`IMPRIMIR`) y Retorno (`RETORNAR`)
 
----
 
 
 
