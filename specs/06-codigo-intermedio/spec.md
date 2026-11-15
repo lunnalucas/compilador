@@ -180,7 +180,7 @@ Reglas:
 
 ## 5-Reglas para generar la Polaca
 
-## Reglas Generales de Construcción
+### Reglas Generales de Construcción
 * **Estructura de la Polaca:** Se almacena en una lista o vector secuencial de pasos indexados por posición (`nro_paso`, iniciando en `0`). Cada celda de la polaca guarda tanto el elemento (operando, operador o instrucción) como su **tipo de dato asociado** (`entero`, `real` o vacío/sin tipo para saltos y etiquetas).
 * **Pila de Saltos:** Se utiliza una pila auxiliar de direcciones para almacenar las posiciones pendientes de salto (`BF` y `BI`) y rellenarlas posteriormente.
 * **Orden de Escritura:** Todo operando se escribe primero de forma secuencial y los operadores o instrucciones se escriben después.
