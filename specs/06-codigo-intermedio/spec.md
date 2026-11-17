@@ -186,10 +186,44 @@ hacer algo que no este escrito aca.
 
 ### Salida e Impresión (`IMPRIMIR`) y Retorno (`RETORNAR`)
 
+* **`<salida> ::= IMPRIMIR '(' <elementos_salida> ')' ';'`**
+  * **Acción:** Genera la polaca de cada `<elemento_salida>`. Cada elemento debe quedar
+    seguido por una instrucción de impresión que consuma únicamente el valor
+    producido por ese elemento.
 
+* **`<elemento_salida> ::= CADENA`**
+  * **Acción:** Escribe en la polaca el literal de cadena y luego
+    `IMP_CADENA`, sin tipo numérico. El literal debe conservar su contenido
+    sin las comillas delimitadoras.
+
+* **`<elemento_salida> ::= <expresion>`**
+  * **Acción:** Genera primero la polaca de `<expresion>` y luego escribe una
+    instrucción de impresión según el tipo resultante: `IMP_ENTERO` si es
+    `entero` o `IMP_REAL` si es `real`. La instrucción de impresión
+    conserva el tipo del valor que consume.
+
+* **`<elemento_salida> ::= <invocacion>`**
+  * **Acción:** Genera la polaca de `<invocacion>` y luego escribe
+    `IMP_ENTERO` o `IMP_REAL` según el tipo de retorno de la función.
+
+* **`<retorno> ::= RETORNAR <expresion> ';'`**
+  * **Acción:** Genera la polaca de `<expresion>`, aplica la conversión de tipo
+    correspondiente al tipo de retorno declarado por la función (truncamiento
+    de `real` a `entero` o promoción de `entero` a `real`), y escribe `RET`
+    con el tipo de retorno de la función.
+
+* **Regla de consumo:** `IMP_ENTERO`, `IMP_REAL`, `IMP_CADENA` y
+  `RET` consumen el resultado inmediatamente anterior de su elemento o
+  expresión. No deben emitirse instrucciones de impresión o retorno para
+  producciones que no hayan generado un valor.
 
 ## 5. Criterios de aceptacion
 
 Para cualquier programa:
 
 1. Cada `BI` y `BF` tienen sus saltos al numero de paso correspondiente.
+2. La polaca contiene `INICIO_PROG` antes de las sentencias de `inicio` y
+   `FIN_PROG` después de ellas.
+3. Cada operando, operador e instrucción conserva el tipo de dato definido en
+   las reglas de esta especificación.
+4. Las expresiones respetan la precedencia y asociatividad de la gramática.
