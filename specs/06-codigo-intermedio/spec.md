@@ -212,11 +212,6 @@ hacer algo que no este escrito aca.
     de `real` a `entero` o promoción de `entero` a `real`), y escribe `RET`
     con el tipo de retorno de la función.
 
-* **Regla de consumo:** `IMP_ENTERO`, `IMP_REAL`, `IMP_CADENA` y
-  `RET` consumen el resultado inmediatamente anterior de su elemento o
-  expresión. No deben emitirse instrucciones de impresión o retorno para
-  producciones que no hayan generado un valor.
-
 ## 5. Criterios de aceptacion
 
 Para cualquier programa:
