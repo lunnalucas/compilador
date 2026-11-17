@@ -33,11 +33,8 @@ Este módulo abarca estrictamente la etapa final de generación de código del c
 
 *   **Entradas:**
      *   **Estructura de Polaca Inversa:** Arreglo lineal de celdas en memoria provisto por el módulo anterior. Cada celda contiene:
-    * `tipo_de_celda`: Naturaleza del elemento (operador, operando, salto, etc.).
-    * `opcode`: Operación a ejecutar (suma, asignación, `if`, etc.).
-    * `referencia_ts`: Puntero o índice a la Tabla de Símbolos (si corresponde).
-    * `tipo_de_dato`: Tipo de dato asociado al elemento.
-    * `linea`: Número de línea en el código fuente original.
+    * `elemento`: Naturaleza del elemento (operador, operando, salto, etc.).
+    * `tipo`: Tipo de dato asociado al elemento.
 
      *   **Tabla de Símbolos:** Estructura con las variables, constantes y cadenas literales definidas en el código fuente.
 
@@ -158,10 +155,10 @@ El lenguaje ensamblador x86 se ejecuta de manera secuencial, asi que el compilad
 
 Dado que el lenguaje ensamblador x86 no cuenta con instrucciones nativas de E/S para consola, la sentencia `imprimir` se resuelve mediante la interoperabilidad con C, invocando a la función externa `printf` provista por la biblioteca estándar de MinGW/GCC.
 
-El generador de código detecta los opcodes de impresión emitidos por la Polaca (`OP_PRINT_INT`, `OP_PRINT_REAL`, `OP_PRINT_STR`) y selecciona el formato adecuado (`"%d\n"`, `"%f\n"`, o `"%s\n"`) definido en la sección de datos.
+El generador de código detecta los elementos de impresión emitidos por la Polaca (`IMP_ENTERO`, `IMP_REAL`, `IMP_CADENA`) y selecciona el formato adecuado (`"%d\n"`, `"%f\n"`, o `"%s\n"`) definido en la sección de datos.
 
-* **. Impresión de Enteros (`OP_PRINT_INT` - 32 bits / 4 bytes):**
-  - **Celda de Polaca:** `[ variable_entera ] | [ OP_PRINT_INT ]`
+* **. Impresión de Enteros (`IMP_ENTERO` - 32 bits / 4 bytes):**
+  - **Celda de Polaca:** `[ variable_entera ] | [ IMP_ENTERO ]`
   - **Traducción en Assembler (NASM):**
     ```nasm
     MOV eax, [variable_entera]  ; Carga el valor entero de 32 bits en EAX
@@ -171,9 +168,9 @@ El generador de código detecta los opcodes de impresión emitidos por la Polaca
     ADD esp, 8                  ; Limpieza de la pila (2 argumentos de 4 bytes)
     ```
 
-* **. Impresión de Reales (`OP_PRINT_REAL` - 64 bits / 8 bytes):**
+* **. Impresión de Reales (`IMP_REAL` - 64 bits / 8 bytes):**
   Dado que un tipo `real` ocupa 64 bits, la convención `cdecl` requiere apilar los 8 bytes completos para que `printf` los interprete correctamente como un `double`.
-  - **Celda de Polaca:** `[ variable_real ] | [ OP_PRINT_REAL ]`
+  - **Celda de Polaca:** `[ variable_real ] | [ IMP_REAL ]`
   - **Traducción en Assembler (NASM):**
     ```nasm
     MOV eax, [variable_real + 4] ; Carga la parte alta (4 bytes superiores)
@@ -185,9 +182,9 @@ El generador de código detecta los opcodes de impresión emitidos por la Polaca
     ADD esp, 12                  ; Limpieza de la pila (8 bytes del real + 4 bytes del formato)
     ```
 
-* **. Impresión de Cadenas Literales (`OP_PRINT_STR`):**
+* **. Impresión de Cadenas Literales (`IMP_CADENA`):**
   La celda de tipo `CELDA_CADENA` provee el índice (`ref`) para invocar a la interfaz `cadena_obtener(ref)` de la tabla auxiliar de cadenas.
-  - **Celda de Polaca:** `[ STR[n] ] | [ OP_PRINT_STR ]`
+  - **Celda de Polaca:** `[ cadena ] | [ IMP_CADENA ]`
   - **Traducción en Assembler (NASM):**
     ```nasm
     PUSH str_literal_n           ; Puntero al texto literal recuperado de la TablaCadenas
