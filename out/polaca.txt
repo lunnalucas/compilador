@@ -1,0 +1,51 @@
+0|FUNC suma|entero
+1|a|entero
+2|PARAM|entero
+3|b|entero
+4|PARAM|entero
+5|a|entero
+6|b|entero
+7|+|entero
+8|RET|entero
+9|RET|
+10|INICIO_PROG|
+11|x|entero
+12|3|entero
+13|=|entero
+14|y|real
+15|0.0|real
+16|=|real
+17|y|real
+18|x|entero
+19|2.5|real
+20|+|real
+21|=|real
+22|x|entero
+23|5|entero
+24|<|
+25|BF 31|
+26|ok|
+27|IMP_CADENA|
+28|y|real
+29|IMP_REAL|real
+30|BI 33|
+31|no|
+32|IMP_CADENA|
+33|i|entero
+34|3|entero
+35|=|entero
+36|i|entero
+37|0|entero
+38|>|
+39|BF 50|
+40|x|entero
+41|x|entero
+42|1|entero
+43|-|entero
+44|=|entero
+45|i|entero
+46|1|entero
+47|-|entero
+48|=|entero
+49|BI 36|
+50|FIN_PROG|

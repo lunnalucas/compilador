@@ -3,6 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "lexer.h"
+#include "intermedio_types.h"
+#ifdef _WIN32
+#include <direct.h>
+#define MKDIR(d) _mkdir(d)
+#else
+#include <sys/stat.h>
+#define MKDIR(d) mkdir(d, 0755)
+#endif
 #ifdef _WIN32
 #include <io.h>
 extern int _fileno(FILE *);
@@ -21,6 +29,122 @@ static ErrorSintactico *errores = NULL;
 static size_t cantidad_errores = 0;
 static size_t capacidad_errores = 0;
 static int error_memoria = 0;
+
+enum { TIPO_VACIO, TIPO_ENTERO, TIPO_REAL };
+
+typedef struct {
+    char nombre[8192];
+    int tipo;
+} Simbolo;
+
+typedef struct {
+    char elemento[8192];
+    int tipo;
+} CeldaPolaca;
+
+typedef struct {
+    char nombre[8192];
+    int tipo;
+} Funcion;
+
+static Simbolo simbolos[2048];
+static int cantidad_simbolos = 0;
+static Funcion funciones[256];
+static int cantidad_funciones = 0;
+static CeldaPolaca *polaca = NULL;
+static size_t cantidad_polaca = 0;
+static size_t capacidad_polaca = 0;
+static int tipo_funcion_actual = TIPO_VACIO;
+
+static const char *nombre_tipo(int tipo) {
+    if (tipo == TIPO_ENTERO) return "entero";
+    if (tipo == TIPO_REAL) return "real";
+    return "";
+}
+
+static int buscar_simbolo(const char *nombre) {
+    for (int i = cantidad_simbolos - 1; i >= 0; i--)
+        if (strcmp(simbolos[i].nombre, nombre) == 0) return simbolos[i].tipo;
+    return TIPO_ENTERO;
+}
+
+static void registrar_simbolo(const char *nombre, int tipo) {
+    if (cantidad_simbolos < (int)(sizeof(simbolos) / sizeof(simbolos[0]))) {
+        snprintf(simbolos[cantidad_simbolos].nombre,
+                 sizeof(simbolos[cantidad_simbolos].nombre), "%s", nombre);
+        simbolos[cantidad_simbolos++].tipo = tipo;
+    }
+}
+
+static int buscar_funcion(const char *nombre) {
+    for (int i = cantidad_funciones - 1; i >= 0; i--)
+        if (strcmp(funciones[i].nombre, nombre) == 0) return funciones[i].tipo;
+    return TIPO_ENTERO;
+}
+
+static void registrar_funcion(const char *nombre, int tipo) {
+    if (cantidad_funciones < (int)(sizeof(funciones) / sizeof(funciones[0]))) {
+        snprintf(funciones[cantidad_funciones].nombre,
+                 sizeof(funciones[cantidad_funciones].nombre), "%s", nombre);
+        funciones[cantidad_funciones++].tipo = tipo;
+    }
+}
+
+static int emitir(const char *elemento, int tipo) {
+    if (cantidad_polaca == capacidad_polaca) {
+        size_t nueva = capacidad_polaca == 0 ? 64 : capacidad_polaca * 2;
+        CeldaPolaca *tmp = realloc(polaca, nueva * sizeof(*polaca));
+        if (tmp == NULL) {
+            error_memoria = 1;
+            return -1;
+        }
+        polaca = tmp;
+        capacidad_polaca = nueva;
+    }
+    snprintf(polaca[cantidad_polaca].elemento,
+             sizeof(polaca[cantidad_polaca].elemento), "%s", elemento);
+    polaca[cantidad_polaca].tipo = tipo;
+    return (int)cantidad_polaca++;
+}
+
+static int emitir_formato(const char *formato, const char *texto, int tipo) {
+    char elemento[8192];
+    snprintf(elemento, sizeof(elemento), formato, texto);
+    return emitir(elemento, tipo);
+}
+
+static void parchear(int posicion, int destino) {
+    if (posicion >= 0 && (size_t)posicion < cantidad_polaca)
+        snprintf(polaca[posicion].elemento, sizeof(polaca[posicion].elemento),
+                 "%s%d", strncmp(polaca[posicion].elemento, "BF", 2) == 0 ? "BF " : "BI ", destino);
+}
+
+static void escribir_polaca(void) {
+    FILE *salida;
+    MKDIR("out");
+    salida = fopen("out/polaca.txt", "w");
+    if (salida == NULL) {
+        fprintf(stderr, "No se pudo crear out/polaca.txt\n");
+        error_memoria = 1;
+        return;
+    }
+    for (size_t i = 0; i < cantidad_polaca; i++)
+        fprintf(salida, "%zu|%s|%s\n", i, polaca[i].elemento,
+                nombre_tipo(polaca[i].tipo));
+    fclose(salida);
+}
+
+static int tipo_resultado(int izquierdo, int derecho) {
+    return izquierdo == TIPO_REAL || derecho == TIPO_REAL
+               ? TIPO_REAL : TIPO_ENTERO;
+}
+
+static void emitir_asignacion(const char *nombre, int tipo_destino,
+                              int tipo_expresion) {
+    (void)tipo_expresion;
+    emitir("=", tipo_destino);
+    registrar_simbolo(nombre, tipo_destino);
+}
 
 static void registrar_error(int codigo, const char *mensaje) {
     if (cantidad_errores == capacidad_errores) {
@@ -87,14 +211,23 @@ void yyerror(const char *mensaje) {
 %start programa
 %debug
 
+%code requires {
+#include "intermedio_types.h"
+}
+
 %union {
     int cantidad;
-    char texto[8192];
+    int tipo;
+    char *texto;
+    Expresion expresion;
+    Control control;
+    ListaIds ids;
+    SaltosSeleccion saltos;
 }
 
 %token <texto> ID    100
-%token CTE_E         101
-%token CTE_R         102
+%token <texto> CTE_E 101
+%token <texto> CTE_R 102
 %token INICIO        103
 %token ENTERO        104
 %token REAL          105
@@ -124,9 +257,17 @@ void yyerror(const char *mensaje) {
 %token COMA          129
 %token PUNTO         130
 %token COMILLA       131
-%token CADENA        132
+%token <texto> CADENA 132
 
 %type <cantidad> parametros argumentos
+%type <tipo> tipo
+%type <expresion> expresion termino factor condicional t_condicional f_condicional condicion invocacion
+%type <control> control bucle_inicio bucle_cabecera declaracion_inicio asignacion_inicio
+%type <ids> ids
+%type <saltos> fin_bloque_si
+%type <cantidad> seleccion_inicio
+%type <texto> comparador
+%type <tipo> unidad_inicio
 
 %nonassoc LOWER_THAN_SINO
 %nonassoc SINO
@@ -142,7 +283,8 @@ programa
     ;
 
 principal
-    : INICIO bloque_i
+    : INICIO { emitir("INICIO_PROG", TIPO_VACIO); } bloque_i
+      { emitir("FIN_PROG", TIPO_VACIO); }
     ;
 
 unidades
@@ -151,15 +293,38 @@ unidades
     ;
 
 unidad
-    : tipo ID PAR_ABRE parametros PAR_CIERRA bloque
-      { if ($4 == 0 || $4 > 2) error_cantidad($2, $4); }
+    : unidad_inicio parametros PAR_CIERRA bloque
+      { emitir("RET", TIPO_VACIO); }
+    ;
+
+unidad_inicio
+    : tipo ID PAR_ABRE
+      {
+          tipo_funcion_actual = $1;
+          registrar_funcion($2, $1);
+          emitir_formato("FUNC %s", $2, $1);
+          $$ = $1;
+      }
     ;
 
 parametros
     : /* vacio */ { $$ = 0; }
-    | tipo ID { $$ = 1; }
-    | tipo ID COMA tipo ID { $$ = 2; }
-    | tipo ID COMA tipo ID COMA tipo ID { $$ = 3; }
+    | tipo ID
+      {
+          registrar_simbolo($2, $1);
+          emitir($2, $1); emitir("PARAM", $1); $$ = 1;
+      }
+    | tipo ID COMA tipo ID
+      {
+          registrar_simbolo($2, $1); emitir($2, $1); emitir("PARAM", $1);
+          registrar_simbolo($5, $4); emitir($5, $4); emitir("PARAM", $4); $$ = 2;
+      }
+    | tipo ID COMA tipo ID COMA tipo ID
+      {
+          registrar_simbolo($2, $1); emitir($2, $1); emitir("PARAM", $1);
+          registrar_simbolo($5, $4); emitir($5, $4); emitir("PARAM", $4);
+          registrar_simbolo($8, $7); emitir($8, $7); emitir("PARAM", $7); $$ = 3;
+      }
     ;
 
 bloque
@@ -202,66 +367,183 @@ sentencia
     ;
 
 declaracion
-    : tipo ID ASIG expresion P_COMA
+    : declaracion_inicio expresion P_COMA
+      { emitir_asignacion($1.nombre, $1.tipo, $2.tipo); }
     | tipo ids P_COMA
+      {
+          for (int i = 0; i < $2.cantidad; i++) {
+              int tipo = $1;
+              registrar_simbolo($2.nombres[i], tipo);
+              emitir($2.nombres[i], tipo);
+              emitir(tipo == TIPO_REAL ? "0.0" : "0", tipo == TIPO_REAL ? TIPO_REAL : TIPO_ENTERO);
+              emitir("=", tipo);
+          }
+      }
     | tipo ID P_COMA
+      {
+          registrar_simbolo($2, $1); emitir($2, $1);
+          emitir($1 == TIPO_REAL ? "0.0" : "0",
+                 $1 == TIPO_REAL ? TIPO_REAL : TIPO_ENTERO);
+          emitir("=", $1);
+      }
     ;
 
 ids
     : ids COMA ID
+      {
+          $$ = $1;
+          if ($$.cantidad < 16)
+              snprintf($$.nombres[$$.cantidad++], sizeof($$.nombres[0]), "%s", $3);
+      }
     | ID %prec DECLARACION_ID
+      {
+          memset(&$$, 0, sizeof($$));
+          snprintf($$.nombres[0], sizeof($$.nombres[0]), "%s", $1);
+          $$.cantidad = 1;
+      }
     ;
 
 asignacion
-    : ID ASIG expresion P_COMA
-    | ID ASIG invocacion P_COMA
+    : asignacion_inicio expresion P_COMA
+      { emitir_asignacion($1.nombre, $1.tipo, $2.tipo); }
+    | asignacion_inicio invocacion P_COMA
+      { emitir_asignacion($1.nombre, $1.tipo, $2.tipo); }
+    ;
+
+declaracion_inicio
+    : tipo ID ASIG
+      {
+          $$ = (Control){0};
+          $$.tipo = $1;
+          snprintf($$.nombre, sizeof($$.nombre), "%s", $2);
+          registrar_simbolo($2, $1);
+          emitir($2, $1);
+      }
+    ;
+
+asignacion_inicio
+    : ID ASIG
+      {
+          $$ = (Control){0};
+          $$.tipo = buscar_simbolo($1);
+          snprintf($$.nombre, sizeof($$.nombre), "%s", $1);
+          emitir($1, $$.tipo);
+      }
     ;
 
 invocacion
     : ID PAR_ABRE argumentos PAR_CIERRA
-      { if ($3 > 2) error_cantidad($1, $3); }
+      {
+          if ($3 > 2) error_cantidad($1, $3);
+          emitir($1, buscar_funcion($1));
+          {
+              char llamada[64];
+              snprintf(llamada, sizeof(llamada), "CALL %d", $3);
+              emitir(llamada, buscar_funcion($1));
+          }
+          $$.tipo = buscar_funcion($1);
+      }
     ;
 
 seleccion
-    : SI PAR_ABRE condicional PAR_CIERRA bloque %prec LOWER_THAN_SINO
-    | SI PAR_ABRE condicional PAR_CIERRA bloque SINO bloque
+    : seleccion_inicio bloque %prec LOWER_THAN_SINO
+      { parchear($1, (int)cantidad_polaca); }
+    | fin_bloque_si SINO bloque
+      { parchear($1.bi, (int)cantidad_polaca); }
+    ;
+
+seleccion_inicio
+    : SI PAR_ABRE condicional PAR_CIERRA
+      { $$ = emitir("BF ?", TIPO_VACIO); }
+    ;
+
+fin_bloque_si
+    : seleccion_inicio bloque
+      {
+          $$.bf = $1;
+          $$.bi = emitir("BI ?", TIPO_VACIO);
+          parchear($$.bf, (int)cantidad_polaca);
+      }
     ;
 
 condicional
     : condicional OR t_condicional
-    | t_condicional
+      { emitir("|", TIPO_VACIO); $$.tipo = TIPO_ENTERO; }
+    | t_condicional { $$ = $1; }
     ;
 
 t_condicional
     : t_condicional AND f_condicional
-    | f_condicional
+      { emitir("&", TIPO_VACIO); $$.tipo = TIPO_ENTERO; }
+    | f_condicional { $$ = $1; }
     ;
 
 f_condicional
-    : condicion
-    | PAR_ABRE condicional PAR_CIERRA
+    : condicion { $$ = $1; }
+    | PAR_ABRE condicional PAR_CIERRA { $$ = $2; }
     ;
 
 condicion
     : expresion comparador expresion
+      { emitir($2, TIPO_VACIO); $$.tipo = TIPO_ENTERO; }
     ;
 
 comparador
-    : IGUAL
-    | DISTINTO
-    | MENOR
-    | MAYOR
-    | MENOR_IGUAL
-    | MAYOR_IGUAL
+    : IGUAL       { $$ = "=="; }
+    | DISTINTO    { $$ = "!="; }
+    | MENOR       { $$ = "<"; }
+    | MAYOR       { $$ = ">"; }
+    | MENOR_IGUAL { $$ = "<="; }
+    | MAYOR_IGUAL { $$ = ">="; }
     ;
 
 bucle
-    : PARA PAR_ABRE control P_COMA condicional P_COMA CTE_E PAR_CIERRA bloque
+    : bucle_cabecera bloque
+      {
+          emitir($1.nombre, $1.tipo);
+          emitir($1.decremento, TIPO_ENTERO);
+          emitir("-", $1.tipo);
+          emitir("=", $1.tipo);
+          {
+              char salto[64];
+              snprintf(salto, sizeof(salto), "BI %d", $1.posicion);
+              emitir(salto, TIPO_VACIO);
+          }
+          parchear($1.bf, (int)cantidad_polaca);
+      }
     ;
 
 control
     : ENTERO ID ASIG CTE_E
+      {
+          $$.tipo = TIPO_ENTERO; snprintf($$.nombre, sizeof($$.nombre), "%s", $2);
+          $$.posicion = -1; $$.bf = -1;
+          registrar_simbolo($2, TIPO_ENTERO); emitir($2, TIPO_ENTERO); emitir($4, TIPO_ENTERO); emitir("=", TIPO_ENTERO);
+      }
     | ID ASIG CTE_E
+      {
+          $$.tipo = buscar_simbolo($1); snprintf($$.nombre, sizeof($$.nombre), "%s", $1);
+          $$.posicion = -1; $$.bf = -1;
+          emitir($1, $$.tipo); emitir($3, TIPO_ENTERO); emitir("=", $$.tipo);
+      }
+    ;
+
+bucle_cabecera
+    : bucle_inicio condicional P_COMA CTE_E PAR_CIERRA
+      {
+          $$ = $1;
+          emitir("BF ?", TIPO_VACIO);
+          $$.bf = (int)cantidad_polaca - 1;
+          snprintf($$.decremento, sizeof($$.decremento), "%s", $4);
+      }
+    ;
+
+bucle_inicio
+    : PARA PAR_ABRE control P_COMA
+      {
+          $$ = $3;
+          $$.posicion = (int)cantidad_polaca;
+      }
     ;
 
 salida
@@ -274,13 +556,14 @@ elementos_salida
     ;
 
 elemento_salida
-    : CADENA
-    | expresion
-    | invocacion
+    : CADENA { emitir($1, TIPO_VACIO); emitir("IMP_CADENA", TIPO_VACIO); }
+    | expresion { emitir($1.tipo == TIPO_REAL ? "IMP_REAL" : "IMP_ENTERO", $1.tipo); }
+    | invocacion { emitir($1.tipo == TIPO_REAL ? "IMP_REAL" : "IMP_ENTERO", $1.tipo); }
     ;
 
 retorno
     : RETORNAR expresion P_COMA
+      { emitir("RET", tipo_funcion_actual); }
     ;
 
 argumentos
@@ -290,26 +573,30 @@ argumentos
 
 expresion
     : expresion SUMA termino
+      { emitir("+", tipo_resultado($1.tipo, $3.tipo)); $$.tipo = tipo_resultado($1.tipo, $3.tipo); }
     | expresion RESTA termino
-    | termino
+      { emitir("-", tipo_resultado($1.tipo, $3.tipo)); $$.tipo = tipo_resultado($1.tipo, $3.tipo); }
+    | termino { $$ = $1; }
     ;
 
 termino
     : termino PRODUCTO factor
+      { emitir("*", tipo_resultado($1.tipo, $3.tipo)); $$.tipo = tipo_resultado($1.tipo, $3.tipo); }
     | termino DIVISION factor
-    | factor
+      { emitir("/", tipo_resultado($1.tipo, $3.tipo)); $$.tipo = tipo_resultado($1.tipo, $3.tipo); }
+    | factor { $$ = $1; }
     ;
 
 factor
-    : ID
-    | CTE_E
-    | CTE_R
-    | PAR_ABRE expresion PAR_CIERRA
+    : ID { emitir($1, buscar_simbolo($1)); $$.tipo = buscar_simbolo($1); }
+    | CTE_E { emitir($1, TIPO_ENTERO); $$.tipo = TIPO_ENTERO; }
+    | CTE_R { emitir($1, TIPO_REAL); $$.tipo = TIPO_REAL; }
+    | PAR_ABRE expresion PAR_CIERRA { $$ = $2; }
     ;
 
 tipo
-    : ENTERO
-    | REAL
+    : ENTERO { $$ = TIPO_ENTERO; }
+    | REAL { $$ = TIPO_REAL; }
     ;
 
 %%
@@ -327,6 +614,12 @@ int main(int argc, char *argv[]) {
     }
 
     lexer_init(archivo);
+    cantidad_polaca = 0;
+    capacidad_polaca = 0;
+    free(polaca);
+    polaca = NULL;
+    cantidad_simbolos = 0;
+    cantidad_funciones = 0;
     yydebug = 1;
 
     FILE *traza = fopen("parser_debug.log", "w");
@@ -378,7 +671,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    escribir_polaca();
     printf("Compilacion completa sin errores\n");
     free(errores);
+    free(polaca);
     return 0;
 }

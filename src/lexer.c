@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
+#include "intermedio_types.h"
 #include "parser.tab.h"
 #include "lexer.h"
 #include "lexer_tables.h"
@@ -567,9 +568,11 @@ static int yylex_intentar_token(void) {
         yy_linea = op_start_line; yy_col_ini = op_start_col;
         yy_col_fin = op_start_col + (int)strlen(yy_lexema) - 1;
     }
-    if (tok == ID) {
-        strncpy(yylval.texto, yy_lexema, sizeof(yylval.texto) - 1);
-        yylval.texto[sizeof(yylval.texto) - 1] = '\0';
+    if (tok == ID || tok == CTE_E || tok == CTE_R || tok == CADENA) {
+        size_t longitud = strlen(yy_lexema);
+        yylval.texto = malloc(longitud + 1);
+        if (yylval.texto != NULL)
+            memcpy(yylval.texto, yy_lexema, longitud + 1);
     }
     if (lex_warning_code != 0) {
         registrar_diagnostico(lex_warning_code, lex_warning_line,

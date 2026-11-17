@@ -1,0 +1,17 @@
+entero suma(entero a, entero b) {
+  retornar a + b;
+}
+
+inicio {
+  entero x = 3;
+  real y;
+  y = x + 2.5;
+  si (x < 5) {
+    imprimir("ok", y);
+  } sino {
+    imprimir("no");
+  }
+  para (entero i = 3; i > 0; 1) {
+    x = x - 1;
+  }
+}
