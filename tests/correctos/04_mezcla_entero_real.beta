@@ -1,0 +1,6 @@
+inicio {
+    entero enteroValor = 7;
+    real realValor = 2.5;
+    real resultado = enteroValor + realValor * 2;
+    imprimir("Resultado mixto", resultado);
+}

@@ -1,0 +1,7 @@
+inicio {
+    //SIN PUNTO Y COMA
+    entero valor = 10
+    si (valor > 5) {
+        imprimir("test");
+    }
+}

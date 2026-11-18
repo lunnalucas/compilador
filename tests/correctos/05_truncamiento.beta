@@ -1,0 +1,7 @@
+inicio {
+    real valorReal = 9.75;
+    entero valorEntero = 0;
+    valorEntero = valorReal;
+    imprimir("Valor real", valorReal);
+    imprimir("Truncado a entero", valorEntero);
+}

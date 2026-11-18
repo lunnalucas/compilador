@@ -1,0 +1,4 @@
+inicio {
+    entero valor = 12.3.4;
+    imprimir(valor);
+}

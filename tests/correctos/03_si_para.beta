@@ -1,0 +1,16 @@
+inicio {
+    entero n = 5;
+    entero valor = 1;
+
+    para (entero k = 5; k > 0 & k != 0; 1) {
+        si (k >= 3) {
+            valor = valor * k;
+        } sino {
+            valor = valor + k;
+        }
+    }
+
+    si (n == 5) {
+        imprimir("Valor:", valor);
+    }
+}
