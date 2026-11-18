@@ -65,7 +65,7 @@ El proceso de traducción del código intermedio (Polaca Inversa) a Assembler lo
 
 * **Evaluación mediante Pila y Registros:** El algoritmo procesa cada celda según su tipo:
   * **Operandos (Variables o Constantes):** Al encontrarse con un operando, su valor o dirección se carga y se apila (`PUSH`) utilizando los registros del procesador (por ejemplo, `EAX`), emulando la lógica de evaluación de la Polaca.
-  * **Operadores Aritméticos (`+`, `-`, `*`, `/`):** Al detectar un operador, se desapilan (`POP`) los operandos correspondientes de la pila hacia los registros de trabajo de la CPU (como `EAX` y `EBX`), se ejecuta la instrucción de Assembler respectiva (`ADD`, `SUB`, `IMUL`, etc.), y el resultado obtenido se vuelve a apilar (`PUSH eax`) para formar parte de expresiones más complejas si fuera necesario.
+  * **Operadores Aritméticos (`+`, `-`, `*`, `/`):** Al detectar un operador, se desapilan (`POP`) los operandos correspondientes de la pila hacia los registros de trabajo de la CPU (como `EAX` y `EBX`), se ejecuta la instrucción de Assembler respectiva (`ADD`, `SUB`, `IMUL`, IDIV.), y el resultado obtenido se vuelve a apilar (`PUSH eax`) para formar parte de expresiones más complejas si fuera necesario.
 * **Resolución de Asignaciones (`:=`):** Cuando la celda indica una asignación, el valor resultante de la expresión (que se encuentra en la cima de la pila o en el registro acumulador) se extrae y se almacena directamente en la posición de memoria estática asignada a la variable de destino (`MOV [variable], eax`), completando la instrucción.
 
 * **Ejemplo práctico de recorrido de la Polaca (para la expresión `a = b + 5`):**
@@ -94,7 +94,7 @@ El proceso de traducción del código intermedio (Polaca Inversa) a Assembler lo
     
 ### 4.4. Manejo de saltos y estructuras de control (`si` y `para`)
 
-El lenguaje ensamblador x86 se ejecuta de manera secuencial, asi que el compilador traduce las estructuras de control (`si` y `para`) utilizando comparaciones (`CMP`) y saltos condicionales o incondicionales (`JMP`, `JZ`, `JNZ`, `JL`, `JG`, etc.) apoyándose en etiquetas virtuales únicas generadas durante la síntesis.
+El lenguaje ensamblador x86 se ejecuta de manera secuencial, asi que el compilador traduce las estructuras de control (`si` y `para`) utilizando comparaciones (`CMP`) y saltos condicionales o incondicionales (`JMP`, `JZ`, `JNZ`, `JL`, `JG`, `JLE`,`JGE` .) apoyándose en etiquetas virtuales únicas generadas durante la síntesis.
 
 * **Estructura condicional (`si` / `sino`):**
   * Se evalúa la condición lógica generando una comparación en la CPU.
