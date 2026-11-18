@@ -1,0 +1,14 @@
+inicio {
+    entero contador = 4;
+    real resultado;
+
+    para (contador = 4; contador >= 0; 1) {
+        si (contador >= 2) {
+            resultado = resultado + contador;
+        } sino {
+            resultado = resultado * 2;
+        }
+    }
+
+    imprimir("Resultado final:", resultado);
+}
