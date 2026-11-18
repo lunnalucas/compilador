@@ -39,7 +39,7 @@ Este módulo abarca estrictamente la etapa final de generación de código del c
      *   **Tabla de Símbolos:** Estructura con las variables, constantes y cadenas literales definidas en el código fuente.
 
 *   **Salidas:**
-    *   **Archivo de Código Assembler (`.asm`):** Archivo de texto fuente con las instrucciones en lenguaje ensamblador (x86, 32 bits, formato NASM) listo para ser compilado y ejecutado.
+    *   **Archivo de Código Assembler (`.asm`):** Archivo de texto fuente (`assembler.asm`) con las instrucciones en lenguaje ensamblador (x86, 32 bits, formato NASM) listo para ser compilado y ejecutado.
     *   **Archivo de Trazabilidad / Log de Traducción:** Archivo generado durante la ejecución que registra el paso a paso del consumo de la polaca y su conversión a Assembler, el cual es volcado en pantalla al finalizar el proceso.
 
 ## 4. Reglas y decisiones de diseño
