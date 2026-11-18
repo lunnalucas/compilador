@@ -188,7 +188,6 @@ out/
 ## Estructura del repositorio
 
 - `assets/` — imágenes y otros recursos estáticos.
-- `docs/` — entregables formales del proyecto.
 - `src/` — implementación del compilador.
   - `lexer.c` y `lexer_tables.c`: análisis léxico.
   - `parser.y`: gramática y acciones semánticas.
