@@ -1,5 +1,0 @@
-inicio {
-    entero valor = 3;
-    entero valor = 7;
-    imprimir(valor);
-}

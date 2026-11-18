@@ -1,9 +1,0 @@
-entero factorial(entero numero) {
-    numero = factorial(numero);
-    retornar numero;
-}
-
-inicio {
-    entero resultado = 5;
-    imprimir(resultado);
-}

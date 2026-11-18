@@ -1,0 +1,16 @@
+inicio {
+    entero valor1 = 10;
+    real valor2 = 2.5;
+
+    real resultado = valor1 + valor2;
+
+    imprimir("Primer resultado:", resultado);
+
+    resultado = resultado * 3;
+
+    imprimir("Segundo resultado:", resultado);
+
+    entero truncado = resultado;
+
+    imprimir("Resultado truncado:", truncado);
+}
