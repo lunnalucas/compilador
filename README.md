@@ -49,14 +49,14 @@ Con una compilación correcta se genera la polaca inversa en
 indexados desde cero. Para probar otro programa, reemplazá la ruta por
 cualquier archivo `.beta` válido.
 
-El compilador consume esa polaca para generar `out\programa.asm` en sintaxis
+El compilador consume esa polaca para generar `out\assembler.asm` en sintaxis
 NASM x86 de 32 bits. La traza de traducción se guarda en
 `out\traza_assembler.txt` y también se muestra en consola. Para ensamblar y
 enlazar en un entorno MinGW con NASM:
 
 ```
-nasm -f win32 out\programa.asm -o out\programa.obj
-gcc -m32 -o out\programa.exe out\programa.obj
+nasm -f win32 out\assembler.asm -o out\assembler.obj
+gcc -m32 -o out\assembler.exe out\assembler.obj
 ```
 
 ## Estructura del repositorio

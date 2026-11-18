@@ -47,3 +47,6 @@ Traza de traduccion NASM x86 (32 bits)
 45 | i                            | PUSH     push dword [_v_main_i]
 46 | 1                            | PUSH constante
 47 | -                            | operador -
+48 | =                            | asignar a _v_main_i
+49 | BI 36                        | salto a _paso_36
+50 | FIN_PROG                     | finalizar main

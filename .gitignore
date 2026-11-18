@@ -1,3 +1,8 @@
 *.exe
 *.log
+*.obj
+out/
+nasm.exe
 notas.txt
+traza_assembler.txt
+polaca.txt

@@ -281,10 +281,11 @@ static const char *etiqueta_variable(int indice) {
     if (indice < 0 || (size_t)indice >= cantidad_variables) return "_v_invalida";
     const Variable *variable = &variables[indice];
     if (variable->ambito < 0)
-        snprintf(etiqueta, 128, "_v_main_%s", variable->nombre);
+        snprintf(etiqueta, 128, "_v_main_%.*s", 20, variable->nombre);
     else
-        snprintf(etiqueta, 128, "_v_%s_%s",
-                 funciones[variable->ambito].nombre, variable->nombre);
+        snprintf(etiqueta, 128, "_v_%.*s_%.*s",
+                 20, funciones[variable->ambito].nombre,
+                 20, variable->nombre);
     return etiqueta;
 }
 
@@ -447,6 +448,11 @@ static int emitir_operador(FILE *asm_file, FILE *traza, Celda *celda) {
     ValorPila derecho = desapilar();
     ValorPila izquierdo = desapilar();
     const char *op = celda->elemento;
+    int es_actualizacion_para =
+        strcmp(op, "-") == 0 &&
+        celda->paso + 1 < cantidad_celdas &&
+        strcmp(celdas[celda->paso + 1].elemento, "=") == 0 &&
+        cantidad_pila == 0 && izquierdo.variable >= 0;
     if (strcmp(op, "&") == 0 || strcmp(op, "|") == 0) {
         fprintf(asm_file, "    pop ebx\n    pop eax\n    %s eax, ebx\n"
                           "    test eax, eax\n    setne al\n    movzx eax, al\n"
@@ -510,8 +516,14 @@ static int emitir_operador(FILE *asm_file, FILE *traza, Celda *celda) {
         else if (strcmp(op, "/") == 0)
             fprintf(asm_file, "    cdq\n    idiv ebx\n");
         else return 0;
-        fprintf(asm_file, "    push eax\n");
-        apilar(TIPO_ENTERO, -1, -1);
+        if (es_actualizacion_para) {
+            fprintf(asm_file, "    push dword 0\n    push eax\n");
+            apilar(izquierdo.tipo, izquierdo.variable, -1);
+            apilar(TIPO_ENTERO, -1, -1);
+        } else {
+            fprintf(asm_file, "    push eax\n");
+            apilar(TIPO_ENTERO, -1, -1);
+        }
     }
     fprintf(traza, "%zu | %-28s | operador %s\n",
             celda->paso, celda->elemento, celda->elemento);
@@ -535,8 +547,7 @@ static int emitir_asignacion(FILE *asm_file, FILE *traza, Celda *celda) {
         emitir_sacar_real(asm_file, expresion.tipo, etiqueta);
     else
         emitir_sacar_entero(asm_file, expresion.tipo, etiqueta);
-    fprintf(asm_file, "    add esp, %d\n",
-            destino.tipo == TIPO_REAL ? 8 : 4);
+    fprintf(asm_file, "    add esp, 4\n");
     fprintf(traza, "%zu | %-28s | asignar a %s\n",
             celda->paso, celda->elemento, etiqueta);
     return 1;

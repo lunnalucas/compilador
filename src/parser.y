@@ -674,7 +674,7 @@ int main(int argc, char *argv[]) {
 
     escribir_polaca();
     if (error_memoria ||
-        assembler_generar("out/polaca.txt", "out/programa.asm",
+        assembler_generar("out/polaca.txt", "out/assembler.asm",
                           "out/traza_assembler.txt") != 0) {
         free(errores);
         free(polaca);
