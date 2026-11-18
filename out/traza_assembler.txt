@@ -1,0 +1,49 @@
+Traza de traduccion NASM x86 (32 bits)
+0 | FUNC suma                    | definir _fn_suma
+1 | a                            | sin instruccion
+2 | PARAM                        | sin instruccion
+3 | b                            | sin instruccion
+4 | PARAM                        | sin instruccion
+5 | a                            | PUSH     push dword [_v_suma_a]
+6 | b                            | PUSH     push dword [_v_suma_b]
+7 | +                            | operador +
+8 | RET                          | retornar
+9 | RET                          | retornar
+10 | INICIO_PROG                  | iniciar main
+11 | x                            | PUSH     push dword [_v_main_x]
+12 | 3                            | PUSH constante
+13 | =                            | asignar a _v_main_x
+14 | y                            | PUSH real _v_main_y
+15 | 0.0                          | PUSH constante
+16 | =                            | asignar a _v_main_y
+17 | y                            | PUSH real _v_main_y
+18 | x                            | PUSH     push dword [_v_main_x]
+19 | 2.5                          | PUSH constante
+20 | +                            | operador +
+21 | =                            | asignar a _v_main_y
+22 | x                            | PUSH     push dword [_v_main_x]
+23 | 5                            | PUSH constante
+24 | <                            | operador <
+25 | BF 31                        | salto a _paso_31
+26 | ok                           | literal _cadena_0
+27 | IMP_CADENA                   | imprimir
+28 | y                            | PUSH real _v_main_y
+29 | IMP_REAL                     | imprimir
+30 | BI 33                        | salto a _paso_33
+31 | no                           | literal _cadena_1
+32 | IMP_CADENA                   | imprimir
+33 | i                            | PUSH     push dword [_v_main_i]
+34 | 3                            | PUSH constante
+35 | =                            | asignar a _v_main_i
+36 | i                            | PUSH     push dword [_v_main_i]
+37 | 0                            | PUSH constante
+38 | >                            | operador >
+39 | BF 50                        | salto a _paso_50
+40 | x                            | PUSH     push dword [_v_main_x]
+41 | x                            | PUSH     push dword [_v_main_x]
+42 | 1                            | PUSH constante
+43 | -                            | operador -
+44 | =                            | asignar a _v_main_x
+45 | i                            | PUSH     push dword [_v_main_i]
+46 | 1                            | PUSH constante
+47 | -                            | operador -

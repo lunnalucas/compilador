@@ -4,6 +4,7 @@
 #include <string.h>
 #include "lexer.h"
 #include "intermedio_types.h"
+#include "assembler.h"
 #ifdef _WIN32
 #include <direct.h>
 #define MKDIR(d) _mkdir(d)
@@ -672,6 +673,13 @@ int main(int argc, char *argv[]) {
     }
 
     escribir_polaca();
+    if (error_memoria ||
+        assembler_generar("out/polaca.txt", "out/programa.asm",
+                          "out/traza_assembler.txt") != 0) {
+        free(errores);
+        free(polaca);
+        return 1;
+    }
     printf("Compilacion completa sin errores\n");
     free(errores);
     free(polaca);

@@ -21,7 +21,7 @@ En la carpeta raiz del repositorio se debe ejecutar:
 
 ```
 bison -d src/parser.y -o src/parser.tab.c
-gcc -std=c99 -Wall -Wextra -pedantic -o parser.exe src/parser.tab.c src/lexer.c src/lexer_tables.c
+gcc -std=c99 -Wall -Wextra -pedantic -o parser.exe src/parser.tab.c src/lexer.c src/lexer_tables.c src/assembler.c
 ```
 
 Si la instalación de Bison de GnuWin32 está dentro de `Program Files` y
@@ -33,7 +33,7 @@ $env:BISON_PKGDATADIR = "X:\share\bison"
 $env:PATH = "X:\bin;$env:PATH"
 bison -d src/parser.y -o src/parser.tab.c
 subst X: /d
-gcc -std=c99 -Wall -Wextra -pedantic -o parser.exe src/parser.tab.c src/lexer.c src/lexer_tables.c
+gcc -std=c99 -Wall -Wextra -pedantic -o parser.exe src/parser.tab.c src/lexer.c src/lexer_tables.c src/assembler.c
 ```
 
 ## Cómo ejecutar
@@ -48,6 +48,16 @@ Con una compilación correcta se genera la polaca inversa en
 `out\polaca.txt`. Cada línea tiene el formato `paso|elemento|tipo`, con pasos
 indexados desde cero. Para probar otro programa, reemplazá la ruta por
 cualquier archivo `.beta` válido.
+
+El compilador consume esa polaca para generar `out\programa.asm` en sintaxis
+NASM x86 de 32 bits. La traza de traducción se guarda en
+`out\traza_assembler.txt` y también se muestra en consola. Para ensamblar y
+enlazar en un entorno MinGW con NASM:
+
+```
+nasm -f win32 out\programa.asm -o out\programa.obj
+gcc -m32 -o out\programa.exe out\programa.obj
+```
 
 ## Estructura del repositorio
 
