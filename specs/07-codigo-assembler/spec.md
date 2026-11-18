@@ -66,11 +66,11 @@ El proceso de traducción del código intermedio (Polaca Inversa) a Assembler lo
 * **Evaluación mediante Pila y Registros:** El algoritmo procesa cada celda según su tipo:
   * **Operandos (Variables o Constantes):** Al encontrarse con un operando, su valor o dirección se carga y se apila (`PUSH`) utilizando los registros del procesador (por ejemplo, `EAX`), emulando la lógica de evaluación de la Polaca.
   * **Operadores Aritméticos (`+`, `-`, `*`, `/`):** Al detectar un operador, se desapilan (`POP`) los operandos correspondientes de la pila hacia los registros de trabajo de la CPU (como `EAX` y `EBX`), se ejecuta la instrucción de Assembler respectiva (`ADD`, `SUB`, `IMUL`, IDIV.), y el resultado obtenido se vuelve a apilar (`PUSH eax`) para formar parte de expresiones más complejas si fuera necesario.
-* **Resolución de Asignaciones (`:=`):** Cuando la celda indica una asignación, el valor resultante de la expresión (que se encuentra en la cima de la pila o en el registro acumulador) se extrae y se almacena directamente en la posición de memoria estática asignada a la variable de destino (`MOV [variable], eax`), completando la instrucción.
+* **Resolución de Asignaciones (`=`):** Cuando la celda indica una asignación, el valor resultante de la expresión (que se encuentra en la cima de la pila o en el registro acumulador) se extrae y se almacena directamente en la posición de memoria estática asignada a la variable de destino (`MOV [variable], eax`), completando la instrucción.
 
 * **Ejemplo práctico de recorrido de la Polaca (para la expresión `a = b + 5`):**
   - **Vector de celdas recibido (Polaca Inversa):** 
-    `[ b ] | [ 5 ] | [ + ] | [ a ] | [ := ]`
+    `[ b ] | [ 5 ] | [ + ] | [ a ] | [ = ]`
 
     1. Operando: `b` (Carga la variable desde la TS)
     2. Operando: `5` (Carga la constante desde la TS)
@@ -103,7 +103,7 @@ El lenguaje ensamblador x86 se ejecuta de manera secuencial, asi que el compilad
 
 * **Ejemplo práctico (`si (a > b) entonces a = 1`):**
     - **Vector de celdas recibido (Polaca Inversa):** 
-      `[ a ] | [ b ] | [ > ] | [ BF, .etq_fin ] | [ a ] | [ 1 ] | [ := ] | [ ETIQUETA, .etq_fin ]`
+      `[ a ] | [ b ] | [ > ] | [ BF, .etq_fin ] | [ a ] | [ 1 ] | [ = ] | [ ETIQUETA, .etq_fin ]`
     - **Traducción generada en Assembler:**
       ```nasm
       MOV eax, [a]        ; Carga a
@@ -118,39 +118,33 @@ El lenguaje ensamblador x86 se ejecuta de manera secuencial, asi que el compilad
       .etq_fin:           ; Etiqueta de salida
       ```
 
-* **Estructura iterativa decremental (`para`):**
-  * **Lógica específica del lenguaje Beta:** El bucle `para` es estrictamente **decremental**. Comienza en un valor superior y decrementa en cada ciclo hasta alcanzar o superar el límite inferior establecido.
-  * **Traducción:** 
-    1. Se inicializa la variable de control.
+* **Estructura iterativa decremental (para):**
+  - **Lógica específica del lenguaje Beta:** El bucle `para` es estrictamente decremental. Comienza en un valor superior y decrementa en cada ciclo según el paso especificado (constante numérica) hasta alcanzar o superar el límite inferior establecido.
+  - **Traducción:**
+    1. Se inicializa la variable de control mediante el operador `=`.
     2. Se establece una etiqueta al inicio de la evaluación del ciclo.
-    3. Se evalúa la condición de corte (verificando si el contador descendió por debajo del límite). Si la condición deja de cumplirse, un salto por falso (`BF`) finaliza el bucle.
+    3. Se evalúa la condición de corte (`>` o `>=`). Si la condición deja de cumplirse, un salto por falso (`BF`) finaliza el bucle.
     4. Se ejecutan las instrucciones contenidas en el cuerpo del bucle.
-    5. Se aplica la operación de decremento sobre la variable de control.
-    6. Un salto incondicional (`JMP`) retorna el flujo a la etiqueta de inicio para la siguiente iteración.
+    5. Se aplica la operación de decremento sobre la variable de control. **Nota importante sobre la Polaca:** A diferencia de una asignación aritmética estándar (que repite el destino, por ejemplo: `[ x ] [ x ] [ 1 ] [ - ] [ = ]`), el decremento automático del bucle `para` se emite en formato compacto con una única referencia a la variable de control seguida de la constante de paso: `[ i ] [ paso ] [ - ] [ = ]`. El traductor assembler debe reconocer esta secuencia y emitir una instrucción `SUB` utilizando el valor constante recibido (sin hardcodear `DEC 1`).
+    6. Un salto incondicional (`BI` -> `JMP`) retorna el flujo a la etiqueta de inicio para la siguiente iteración.
 
-* **Ejemplo práctico (Bucle decremental `para i = 10 hasta 1 hacer ...`):**
-    - **Vector de celdas recibido (Polaca Inversa):**
-[ i ] [ 10 ] [ := ] [ ETIQ_INI ] [ i ] [ 1 ] [ >= ] [ BF, ETIQ_FIN ] [ CÓDIGO_DEL_CUERPO ] [ i ] [ i ] [ 1 ] [ - ] [ := ] [ BI, ETIQ_INI ] [ ETIQ_FIN ]
-   
-    - **Traducción generada en Assembler:**
-      ```nasm
-      MOV [_i], 10        ; Inicialización de la variable de control
-      
-      .inicio_para:       ; Etiqueta de inicio del loop
-      MOV eax, [_i]
-      CMP eax, 1          ; Compara i con el límite inferior (1)
-      JL .fin_para        ; Si i < 1, sale del bucle (BF)
-      
-      ; --- Cuerpo del bucle ---
-      
-      ; --- Decremento ---
-      DEC dword [_i]      ; Resta 1 a i
-      
-      JMP .inicio_para    ; Salta al inicio para reevaluar
-      
-      .fin_para:          ; Fin del bucle
-      ```
-      
+- **Ejemplo práctico (Bucle decremental `para i = 3 hasta 0 paso 1 hacer ...`):**
+  - **Vector de celdas recibido (Polaca Inversa):**
+    `[ i ] [ 3 ] [ = ] [ ETIQ_INI ] [ i ] [ 0 ] [ > ] [ BF, ETIQ_FIN ] [ CÓDIGO_DEL_CUERPO ] [ i ] [ 1 ] [ - ] [ = ] [ BI, ETIQ_INI ] [ ETIQ_FIN ]`
+
+  - **Traducción generada en Assembler:**
+    ```nasm
+    MOV dword [_i], 3   ; Inicialización de la variable de control
+    .inicio_para:       ; Etiqueta de inicio del loop
+    MOV eax, [_i]
+    CMP eax, 0          ; Compara i con el límite inferior (0)
+    JLE .fin_para       ; Si i <= 0, sale del bucle (BF)
+    ; --- Cuerpo del bucle ---
+    ; --- Decremento ---
+    SUB dword [_i], 1   ; Resta el paso constante leído de la polaca (1) a i
+    JMP .inicio_para    ; Salta al inicio para reevaluar (BI)
+    .fin_para:          ; Fin del bucle
+    ```     
 ### 4.5. Generación de la sentencia de salida (`imprimir`)
 
 Dado que el lenguaje ensamblador x86 no cuenta con instrucciones nativas de E/S para consola, la sentencia `imprimir` se resuelve mediante la interoperabilidad con C, invocando a la función externa `printf` provista por la biblioteca estándar de MinGW/GCC.
