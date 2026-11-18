@@ -1,5 +1,0 @@
-inicio {
-    entero resultado = 0;
-    resultado = resultado + faltante;
-    imprimir(resultado);
-}

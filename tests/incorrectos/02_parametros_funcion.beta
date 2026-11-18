@@ -1,0 +1,13 @@
+entero suma(entero a, entero b){
+    entero c = a + b;
+    retorno c;
+}
+
+inicio {
+    entero valor1 = 2;
+    entero valor2 = 2;
+    entero resultado = 0;
+
+    resultado = suma(valor1);
+    imprimir(resultado);
+}

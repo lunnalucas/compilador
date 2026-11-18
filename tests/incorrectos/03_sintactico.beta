@@ -1,0 +1,9 @@
+inicio {
+  entero valor = 2;
+  
+  para (entero i = 5;i > 0;) {
+    valor = valor + 1;
+  }
+
+  imprimir("valor:", valor);
+}
