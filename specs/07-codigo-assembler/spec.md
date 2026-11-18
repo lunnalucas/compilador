@@ -76,7 +76,7 @@ El proceso de traducción del código intermedio (Polaca Inversa) a Assembler lo
     2. Operando: `5` (Carga la constante desde la TS)
     3. Operador: `+` (Suma los dos valores de la pila)
     4. Operando: `a` (Variable de destino)
-    5. Operador: `:=` (Asignación)
+    5. Operador: `=` (Asignación)
 
   - **Traducción generada en Assembler:**
     ```nasm
