@@ -14,6 +14,10 @@
 
 El objetivo de este módulo es recibir el código intermedio (representado como un arreglo lineal de estructuras de Polaca Inversa) en conjunto con la Tabla de Símbolos, y traducirlo de manera estricta y sistemática a código fuente en lenguaje Assembler x86 (arquitectura de 32 bits, formato NASM). Este código generado debe ser completamente funcional, compatible con las restricciones estáticas del lenguaje Beta, y apto para ser ensamblado y linkeado mediante GCC en entornos Windows para su ejecución final.
 
+Es muy importante aclarar que el compilador debe generar el codigo assembler, ejecutarlo por nasm y mostrar la salida del programa beta que se ejecute.
+
+Generar solo el codigo assembler sin ejecutarlo y mostrar la salida del programa es un error.
+
 ## 2. Alcance
 
 Este módulo abarca estrictamente la etapa final de generación de código del compilador. Sus límites operacionales son:

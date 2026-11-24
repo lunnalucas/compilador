@@ -547,9 +547,53 @@ static int emitir_asignacion(FILE *asm_file, FILE *traza, Celda *celda) {
         emitir_sacar_real(asm_file, expresion.tipo, etiqueta);
     else
         emitir_sacar_entero(asm_file, expresion.tipo, etiqueta);
-    fprintf(asm_file, "    add esp, 4\n");
+    fprintf(asm_file, "    add esp, %d\n",
+            variables[destino.variable].tipo == TIPO_REAL ? 8 : 4);
     fprintf(traza, "%zu | %-28s | asignar a %s\n",
             celda->paso, celda->elemento, etiqueta);
+    return 1;
+}
+
+static int ejecutar_codigo(const char *archivo_assembler) {
+    char archivo_objeto[1024];
+    char archivo_ejecutable[1024];
+    char comando[3072];
+    char *extension;
+
+    if (strlen(archivo_assembler) >= sizeof(archivo_objeto) ||
+        strlen(archivo_assembler) >= sizeof(archivo_ejecutable))
+        return 0;
+    snprintf(archivo_objeto, sizeof(archivo_objeto), "%s", archivo_assembler);
+    extension = strrchr(archivo_objeto, '.');
+    if (extension == NULL) return 0;
+    snprintf(extension, (size_t)(archivo_objeto + sizeof(archivo_objeto) -
+                                 extension), ".obj");
+    snprintf(archivo_ejecutable, sizeof(archivo_ejecutable), "%s",
+             archivo_assembler);
+    extension = strrchr(archivo_ejecutable, '.');
+    if (extension == NULL) return 0;
+    snprintf(extension, (size_t)(archivo_ejecutable + sizeof(archivo_ejecutable) -
+                                 extension), ".exe");
+
+#ifdef _WIN32
+    snprintf(comando, sizeof(comando),
+             "nasm -f win32 \"%s\" -o \"%s\" && "
+             "gcc -m32 \"%s\" -o \"%s\" && \"%s\"",
+             archivo_assembler, archivo_objeto, archivo_objeto,
+             archivo_ejecutable, archivo_ejecutable);
+#else
+    snprintf(comando, sizeof(comando),
+             "nasm -f elf32 \"%s\" -o \"%s\" && "
+             "gcc -m32 \"%s\" -o \"%s\" && \"%s\"",
+             archivo_assembler, archivo_objeto, archivo_objeto,
+             archivo_ejecutable, archivo_ejecutable);
+#endif
+    printf("Ejecutando programa generado:\n");
+    fflush(stdout);
+    if (system(comando) != 0) {
+        fprintf(stderr, "No se pudo ensamblar, enlazar o ejecutar el programa generado\n");
+        return 0;
+    }
     return 1;
 }
 
@@ -854,6 +898,8 @@ int assembler_generar(const char *archivo_polaca,
             fclose(archivo);
         }
     }
+    if (correcto && !ejecutar_codigo(archivo_assembler))
+        correcto = 0;
     if (correcto)
         printf("Codigo NASM generado en %s\n", archivo_assembler);
     liberar_estado();

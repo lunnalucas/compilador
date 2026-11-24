@@ -1,4 +1,4 @@
 inicio {
-    entero va@lor = 7;
-    imprimir(valor);
+    entero val@or = 7;
+    imprimir(valor)
 }

@@ -1,6 +1,6 @@
 entero suma(entero a, entero b){
     entero c = a + b;
-    retorno c;
+    retornar c;
 }
 
 inicio {
