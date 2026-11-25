@@ -68,7 +68,7 @@
 /* Copy the first part of user declarations.  */
 
 /* Line 189 of yacc.c  */
-#line 1 "src/parser.y"
+#line 1 "src\\parser.y"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,13 +83,6 @@
 #include <sys/stat.h>
 #define MKDIR(d) mkdir(d, 0755)
 #endif
-#ifdef _WIN32
-#include <io.h>
-extern int _fileno(FILE *);
-#else
-#include <unistd.h>
-#endif
-
 typedef struct {
     int codigo;
     int linea;
@@ -251,15 +244,6 @@ static int errores_sintacticos(void) {
     return cantidad_errores != 0 || error_memoria;
 }
 
-static void imprimir_traza(const char *nombre) {
-    FILE *archivo = fopen(nombre, "r");
-    char linea[1024];
-    if (archivo == NULL) return;
-    while (fgets(linea, sizeof(linea), archivo) != NULL)
-        fputs(linea, stdout);
-    fclose(archivo);
-}
-
 static void error_cantidad(const char *nombre, int cantidad) {
     char mensaje[256];
     if (cantidad == 0) {
@@ -281,7 +265,7 @@ void yyerror(const char *mensaje) {
 
 
 /* Line 189 of yacc.c  */
-#line 285 "src/parser.tab.c"
+#line 269 "src\\parser.tab.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -304,14 +288,14 @@ void yyerror(const char *mensaje) {
 /* "%code requires" blocks.  */
 
 /* Line 209 of yacc.c  */
-#line 215 "src/parser.y"
+#line 199 "src\\parser.y"
 
 #include "intermedio_types.h"
 
 
 
 /* Line 209 of yacc.c  */
-#line 315 "src/parser.tab.c"
+#line 299 "src\\parser.tab.c"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -364,7 +348,7 @@ typedef union YYSTYPE
 {
 
 /* Line 214 of yacc.c  */
-#line 219 "src/parser.y"
+#line 203 "src\\parser.y"
 
     int cantidad;
     int tipo;
@@ -377,7 +361,7 @@ typedef union YYSTYPE
 
 
 /* Line 214 of yacc.c  */
-#line 381 "src/parser.tab.c"
+#line 365 "src\\parser.tab.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -389,7 +373,7 @@ typedef union YYSTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 393 "src/parser.tab.c"
+#line 377 "src\\parser.tab.c"
 
 #ifdef short
 # undef short
@@ -705,15 +689,15 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   282,   282,   283,   287,   287,   292,   293,   297,   302,
-     312,   313,   318,   323,   332,   336,   340,   341,   342,   343,
-     347,   348,   349,   350,   351,   355,   356,   357,   358,   362,
-     363,   364,   365,   366,   367,   371,   373,   383,   393,   399,
-     408,   410,   415,   426,   436,   450,   452,   457,   462,   471,
-     473,   477,   479,   483,   484,   488,   493,   494,   495,   496,
-     497,   498,   502,   518,   524,   533,   543,   551,   555,   556,
-     560,   561,   562,   566,   571,   572,   576,   578,   580,   584,
-     586,   588,   592,   593,   594,   595,   599,   600
+       0,   266,   266,   267,   271,   271,   276,   277,   281,   286,
+     296,   297,   302,   307,   316,   320,   324,   325,   326,   327,
+     331,   332,   333,   334,   335,   339,   340,   341,   342,   346,
+     347,   348,   349,   350,   351,   355,   357,   367,   377,   383,
+     392,   394,   399,   410,   420,   434,   436,   441,   446,   455,
+     457,   461,   463,   467,   468,   472,   477,   478,   479,   480,
+     481,   482,   486,   502,   508,   517,   527,   535,   539,   540,
+     544,   545,   546,   550,   555,   556,   560,   562,   564,   568,
+     570,   572,   576,   577,   578,   579,   583,   584
 };
 #endif
 
@@ -1730,28 +1714,28 @@ yyreduce:
         case 4:
 
 /* Line 1455 of yacc.c  */
-#line 287 "src/parser.y"
+#line 271 "src\\parser.y"
     { emitir("INICIO_PROG", TIPO_VACIO); ;}
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 288 "src/parser.y"
+#line 272 "src\\parser.y"
     { emitir("FIN_PROG", TIPO_VACIO); ;}
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 298 "src/parser.y"
+#line 282 "src\\parser.y"
     { emitir("RET", TIPO_VACIO); ;}
     break;
 
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 303 "src/parser.y"
+#line 287 "src\\parser.y"
     {
           tipo_funcion_actual = (yyvsp[(1) - (3)].tipo);
           registrar_funcion((yyvsp[(2) - (3)].texto), (yyvsp[(1) - (3)].tipo));
@@ -1763,14 +1747,14 @@ yyreduce:
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 312 "src/parser.y"
+#line 296 "src\\parser.y"
     { (yyval.cantidad) = 0; ;}
     break;
 
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 314 "src/parser.y"
+#line 298 "src\\parser.y"
     {
           registrar_simbolo((yyvsp[(2) - (2)].texto), (yyvsp[(1) - (2)].tipo));
           emitir((yyvsp[(2) - (2)].texto), (yyvsp[(1) - (2)].tipo)); emitir("PARAM", (yyvsp[(1) - (2)].tipo)); (yyval.cantidad) = 1;
@@ -1780,7 +1764,7 @@ yyreduce:
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 319 "src/parser.y"
+#line 303 "src\\parser.y"
     {
           registrar_simbolo((yyvsp[(2) - (5)].texto), (yyvsp[(1) - (5)].tipo)); emitir((yyvsp[(2) - (5)].texto), (yyvsp[(1) - (5)].tipo)); emitir("PARAM", (yyvsp[(1) - (5)].tipo));
           registrar_simbolo((yyvsp[(5) - (5)].texto), (yyvsp[(4) - (5)].tipo)); emitir((yyvsp[(5) - (5)].texto), (yyvsp[(4) - (5)].tipo)); emitir("PARAM", (yyvsp[(4) - (5)].tipo)); (yyval.cantidad) = 2;
@@ -1790,7 +1774,7 @@ yyreduce:
   case 13:
 
 /* Line 1455 of yacc.c  */
-#line 324 "src/parser.y"
+#line 308 "src\\parser.y"
     {
           registrar_simbolo((yyvsp[(2) - (8)].texto), (yyvsp[(1) - (8)].tipo)); emitir((yyvsp[(2) - (8)].texto), (yyvsp[(1) - (8)].tipo)); emitir("PARAM", (yyvsp[(1) - (8)].tipo));
           registrar_simbolo((yyvsp[(5) - (8)].texto), (yyvsp[(4) - (8)].tipo)); emitir((yyvsp[(5) - (8)].texto), (yyvsp[(4) - (8)].tipo)); emitir("PARAM", (yyvsp[(4) - (8)].tipo));
@@ -1801,14 +1785,14 @@ yyreduce:
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 372 "src/parser.y"
+#line 356 "src\\parser.y"
     { emitir_asignacion((yyvsp[(1) - (3)].control).nombre, (yyvsp[(1) - (3)].control).tipo, (yyvsp[(2) - (3)].expresion).tipo); ;}
     break;
 
   case 36:
 
 /* Line 1455 of yacc.c  */
-#line 374 "src/parser.y"
+#line 358 "src\\parser.y"
     {
           for (int i = 0; i < (yyvsp[(2) - (3)].ids).cantidad; i++) {
               int tipo = (yyvsp[(1) - (3)].tipo);
@@ -1823,7 +1807,7 @@ yyreduce:
   case 37:
 
 /* Line 1455 of yacc.c  */
-#line 384 "src/parser.y"
+#line 368 "src\\parser.y"
     {
           registrar_simbolo((yyvsp[(2) - (3)].texto), (yyvsp[(1) - (3)].tipo)); emitir((yyvsp[(2) - (3)].texto), (yyvsp[(1) - (3)].tipo));
           emitir((yyvsp[(1) - (3)].tipo) == TIPO_REAL ? "0.0" : "0",
@@ -1835,7 +1819,7 @@ yyreduce:
   case 38:
 
 /* Line 1455 of yacc.c  */
-#line 394 "src/parser.y"
+#line 378 "src\\parser.y"
     {
           (yyval.ids) = (yyvsp[(1) - (3)].ids);
           if ((yyval.ids).cantidad < 16)
@@ -1846,7 +1830,7 @@ yyreduce:
   case 39:
 
 /* Line 1455 of yacc.c  */
-#line 400 "src/parser.y"
+#line 384 "src\\parser.y"
     {
           memset(&(yyval.ids), 0, sizeof((yyval.ids)));
           snprintf((yyval.ids).nombres[0], sizeof((yyval.ids).nombres[0]), "%s", (yyvsp[(1) - (1)].texto));
@@ -1857,21 +1841,21 @@ yyreduce:
   case 40:
 
 /* Line 1455 of yacc.c  */
-#line 409 "src/parser.y"
+#line 393 "src\\parser.y"
     { emitir_asignacion((yyvsp[(1) - (3)].control).nombre, (yyvsp[(1) - (3)].control).tipo, (yyvsp[(2) - (3)].expresion).tipo); ;}
     break;
 
   case 41:
 
 /* Line 1455 of yacc.c  */
-#line 411 "src/parser.y"
+#line 395 "src\\parser.y"
     { emitir_asignacion((yyvsp[(1) - (3)].control).nombre, (yyvsp[(1) - (3)].control).tipo, (yyvsp[(2) - (3)].expresion).tipo); ;}
     break;
 
   case 42:
 
 /* Line 1455 of yacc.c  */
-#line 416 "src/parser.y"
+#line 400 "src\\parser.y"
     {
           (yyval.control) = (Control){0};
           (yyval.control).tipo = (yyvsp[(1) - (3)].tipo);
@@ -1884,7 +1868,7 @@ yyreduce:
   case 43:
 
 /* Line 1455 of yacc.c  */
-#line 427 "src/parser.y"
+#line 411 "src\\parser.y"
     {
           (yyval.control) = (Control){0};
           (yyval.control).tipo = buscar_simbolo((yyvsp[(1) - (2)].texto));
@@ -1896,7 +1880,7 @@ yyreduce:
   case 44:
 
 /* Line 1455 of yacc.c  */
-#line 437 "src/parser.y"
+#line 421 "src\\parser.y"
     {
           if ((yyvsp[(3) - (4)].cantidad) > 2) error_cantidad((yyvsp[(1) - (4)].texto), (yyvsp[(3) - (4)].cantidad));
           emitir((yyvsp[(1) - (4)].texto), buscar_funcion((yyvsp[(1) - (4)].texto)));
@@ -1912,28 +1896,28 @@ yyreduce:
   case 45:
 
 /* Line 1455 of yacc.c  */
-#line 451 "src/parser.y"
+#line 435 "src\\parser.y"
     { parchear((yyvsp[(1) - (2)].cantidad), (int)cantidad_polaca); ;}
     break;
 
   case 46:
 
 /* Line 1455 of yacc.c  */
-#line 453 "src/parser.y"
+#line 437 "src\\parser.y"
     { parchear((yyvsp[(1) - (3)].saltos).bi, (int)cantidad_polaca); ;}
     break;
 
   case 47:
 
 /* Line 1455 of yacc.c  */
-#line 458 "src/parser.y"
+#line 442 "src\\parser.y"
     { (yyval.cantidad) = emitir("BF ?", TIPO_VACIO); ;}
     break;
 
   case 48:
 
 /* Line 1455 of yacc.c  */
-#line 463 "src/parser.y"
+#line 447 "src\\parser.y"
     {
           (yyval.saltos).bf = (yyvsp[(1) - (2)].cantidad);
           (yyval.saltos).bi = emitir("BI ?", TIPO_VACIO);
@@ -1944,98 +1928,98 @@ yyreduce:
   case 49:
 
 /* Line 1455 of yacc.c  */
-#line 472 "src/parser.y"
+#line 456 "src\\parser.y"
     { emitir("|", TIPO_VACIO); (yyval.expresion).tipo = TIPO_ENTERO; ;}
     break;
 
   case 50:
 
 /* Line 1455 of yacc.c  */
-#line 473 "src/parser.y"
+#line 457 "src\\parser.y"
     { (yyval.expresion) = (yyvsp[(1) - (1)].expresion); ;}
     break;
 
   case 51:
 
 /* Line 1455 of yacc.c  */
-#line 478 "src/parser.y"
+#line 462 "src\\parser.y"
     { emitir("&", TIPO_VACIO); (yyval.expresion).tipo = TIPO_ENTERO; ;}
     break;
 
   case 52:
 
 /* Line 1455 of yacc.c  */
-#line 479 "src/parser.y"
+#line 463 "src\\parser.y"
     { (yyval.expresion) = (yyvsp[(1) - (1)].expresion); ;}
     break;
 
   case 53:
 
 /* Line 1455 of yacc.c  */
-#line 483 "src/parser.y"
+#line 467 "src\\parser.y"
     { (yyval.expresion) = (yyvsp[(1) - (1)].expresion); ;}
     break;
 
   case 54:
 
 /* Line 1455 of yacc.c  */
-#line 484 "src/parser.y"
+#line 468 "src\\parser.y"
     { (yyval.expresion) = (yyvsp[(2) - (3)].expresion); ;}
     break;
 
   case 55:
 
 /* Line 1455 of yacc.c  */
-#line 489 "src/parser.y"
+#line 473 "src\\parser.y"
     { emitir((yyvsp[(2) - (3)].texto), TIPO_VACIO); (yyval.expresion).tipo = TIPO_ENTERO; ;}
     break;
 
   case 56:
 
 /* Line 1455 of yacc.c  */
-#line 493 "src/parser.y"
+#line 477 "src\\parser.y"
     { (yyval.texto) = "=="; ;}
     break;
 
   case 57:
 
 /* Line 1455 of yacc.c  */
-#line 494 "src/parser.y"
+#line 478 "src\\parser.y"
     { (yyval.texto) = "!="; ;}
     break;
 
   case 58:
 
 /* Line 1455 of yacc.c  */
-#line 495 "src/parser.y"
+#line 479 "src\\parser.y"
     { (yyval.texto) = "<"; ;}
     break;
 
   case 59:
 
 /* Line 1455 of yacc.c  */
-#line 496 "src/parser.y"
+#line 480 "src\\parser.y"
     { (yyval.texto) = ">"; ;}
     break;
 
   case 60:
 
 /* Line 1455 of yacc.c  */
-#line 497 "src/parser.y"
+#line 481 "src\\parser.y"
     { (yyval.texto) = "<="; ;}
     break;
 
   case 61:
 
 /* Line 1455 of yacc.c  */
-#line 498 "src/parser.y"
+#line 482 "src\\parser.y"
     { (yyval.texto) = ">="; ;}
     break;
 
   case 62:
 
 /* Line 1455 of yacc.c  */
-#line 503 "src/parser.y"
+#line 487 "src\\parser.y"
     {
           emitir((yyvsp[(1) - (2)].control).nombre, (yyvsp[(1) - (2)].control).tipo);
           emitir((yyvsp[(1) - (2)].control).decremento, TIPO_ENTERO);
@@ -2053,7 +2037,7 @@ yyreduce:
   case 63:
 
 /* Line 1455 of yacc.c  */
-#line 519 "src/parser.y"
+#line 503 "src\\parser.y"
     {
           (yyval.control).tipo = TIPO_ENTERO; snprintf((yyval.control).nombre, sizeof((yyval.control).nombre), "%s", (yyvsp[(2) - (4)].texto));
           (yyval.control).posicion = -1; (yyval.control).bf = -1;
@@ -2064,7 +2048,7 @@ yyreduce:
   case 64:
 
 /* Line 1455 of yacc.c  */
-#line 525 "src/parser.y"
+#line 509 "src\\parser.y"
     {
           (yyval.control).tipo = buscar_simbolo((yyvsp[(1) - (3)].texto)); snprintf((yyval.control).nombre, sizeof((yyval.control).nombre), "%s", (yyvsp[(1) - (3)].texto));
           (yyval.control).posicion = -1; (yyval.control).bf = -1;
@@ -2075,7 +2059,7 @@ yyreduce:
   case 65:
 
 /* Line 1455 of yacc.c  */
-#line 534 "src/parser.y"
+#line 518 "src\\parser.y"
     {
           (yyval.control) = (yyvsp[(1) - (5)].control);
           emitir("BF ?", TIPO_VACIO);
@@ -2087,7 +2071,7 @@ yyreduce:
   case 66:
 
 /* Line 1455 of yacc.c  */
-#line 544 "src/parser.y"
+#line 528 "src\\parser.y"
     {
           (yyval.control) = (yyvsp[(3) - (4)].control);
           (yyval.control).posicion = (int)cantidad_polaca;
@@ -2097,133 +2081,133 @@ yyreduce:
   case 70:
 
 /* Line 1455 of yacc.c  */
-#line 560 "src/parser.y"
+#line 544 "src\\parser.y"
     { emitir((yyvsp[(1) - (1)].texto), TIPO_VACIO); emitir("IMP_CADENA", TIPO_VACIO); ;}
     break;
 
   case 71:
 
 /* Line 1455 of yacc.c  */
-#line 561 "src/parser.y"
+#line 545 "src\\parser.y"
     { emitir((yyvsp[(1) - (1)].expresion).tipo == TIPO_REAL ? "IMP_REAL" : "IMP_ENTERO", (yyvsp[(1) - (1)].expresion).tipo); ;}
     break;
 
   case 72:
 
 /* Line 1455 of yacc.c  */
-#line 562 "src/parser.y"
+#line 546 "src\\parser.y"
     { emitir((yyvsp[(1) - (1)].expresion).tipo == TIPO_REAL ? "IMP_REAL" : "IMP_ENTERO", (yyvsp[(1) - (1)].expresion).tipo); ;}
     break;
 
   case 73:
 
 /* Line 1455 of yacc.c  */
-#line 567 "src/parser.y"
+#line 551 "src\\parser.y"
     { emitir("RET", tipo_funcion_actual); ;}
     break;
 
   case 74:
 
 /* Line 1455 of yacc.c  */
-#line 571 "src/parser.y"
+#line 555 "src\\parser.y"
     { (yyval.cantidad) = 1; ;}
     break;
 
   case 75:
 
 /* Line 1455 of yacc.c  */
-#line 572 "src/parser.y"
+#line 556 "src\\parser.y"
     { (yyval.cantidad) = (yyvsp[(1) - (3)].cantidad) + 1; ;}
     break;
 
   case 76:
 
 /* Line 1455 of yacc.c  */
-#line 577 "src/parser.y"
+#line 561 "src\\parser.y"
     { emitir("+", tipo_resultado((yyvsp[(1) - (3)].expresion).tipo, (yyvsp[(3) - (3)].expresion).tipo)); (yyval.expresion).tipo = tipo_resultado((yyvsp[(1) - (3)].expresion).tipo, (yyvsp[(3) - (3)].expresion).tipo); ;}
     break;
 
   case 77:
 
 /* Line 1455 of yacc.c  */
-#line 579 "src/parser.y"
+#line 563 "src\\parser.y"
     { emitir("-", tipo_resultado((yyvsp[(1) - (3)].expresion).tipo, (yyvsp[(3) - (3)].expresion).tipo)); (yyval.expresion).tipo = tipo_resultado((yyvsp[(1) - (3)].expresion).tipo, (yyvsp[(3) - (3)].expresion).tipo); ;}
     break;
 
   case 78:
 
 /* Line 1455 of yacc.c  */
-#line 580 "src/parser.y"
+#line 564 "src\\parser.y"
     { (yyval.expresion) = (yyvsp[(1) - (1)].expresion); ;}
     break;
 
   case 79:
 
 /* Line 1455 of yacc.c  */
-#line 585 "src/parser.y"
+#line 569 "src\\parser.y"
     { emitir("*", tipo_resultado((yyvsp[(1) - (3)].expresion).tipo, (yyvsp[(3) - (3)].expresion).tipo)); (yyval.expresion).tipo = tipo_resultado((yyvsp[(1) - (3)].expresion).tipo, (yyvsp[(3) - (3)].expresion).tipo); ;}
     break;
 
   case 80:
 
 /* Line 1455 of yacc.c  */
-#line 587 "src/parser.y"
+#line 571 "src\\parser.y"
     { emitir("/", tipo_resultado((yyvsp[(1) - (3)].expresion).tipo, (yyvsp[(3) - (3)].expresion).tipo)); (yyval.expresion).tipo = tipo_resultado((yyvsp[(1) - (3)].expresion).tipo, (yyvsp[(3) - (3)].expresion).tipo); ;}
     break;
 
   case 81:
 
 /* Line 1455 of yacc.c  */
-#line 588 "src/parser.y"
+#line 572 "src\\parser.y"
     { (yyval.expresion) = (yyvsp[(1) - (1)].expresion); ;}
     break;
 
   case 82:
 
 /* Line 1455 of yacc.c  */
-#line 592 "src/parser.y"
+#line 576 "src\\parser.y"
     { emitir((yyvsp[(1) - (1)].texto), buscar_simbolo((yyvsp[(1) - (1)].texto))); (yyval.expresion).tipo = buscar_simbolo((yyvsp[(1) - (1)].texto)); ;}
     break;
 
   case 83:
 
 /* Line 1455 of yacc.c  */
-#line 593 "src/parser.y"
+#line 577 "src\\parser.y"
     { emitir((yyvsp[(1) - (1)].texto), TIPO_ENTERO); (yyval.expresion).tipo = TIPO_ENTERO; ;}
     break;
 
   case 84:
 
 /* Line 1455 of yacc.c  */
-#line 594 "src/parser.y"
+#line 578 "src\\parser.y"
     { emitir((yyvsp[(1) - (1)].texto), TIPO_REAL); (yyval.expresion).tipo = TIPO_REAL; ;}
     break;
 
   case 85:
 
 /* Line 1455 of yacc.c  */
-#line 595 "src/parser.y"
+#line 579 "src\\parser.y"
     { (yyval.expresion) = (yyvsp[(2) - (3)].expresion); ;}
     break;
 
   case 86:
 
 /* Line 1455 of yacc.c  */
-#line 599 "src/parser.y"
+#line 583 "src\\parser.y"
     { (yyval.tipo) = TIPO_ENTERO; ;}
     break;
 
   case 87:
 
 /* Line 1455 of yacc.c  */
-#line 600 "src/parser.y"
+#line 584 "src\\parser.y"
     { (yyval.tipo) = TIPO_REAL; ;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 2227 "src/parser.tab.c"
+#line 2211 "src\\parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2435,7 +2419,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 603 "src/parser.y"
+#line 587 "src\\parser.y"
 
 
 int main(int argc, char *argv[]) {
@@ -2457,45 +2441,9 @@ int main(int argc, char *argv[]) {
     polaca = NULL;
     cantidad_simbolos = 0;
     cantidad_funciones = 0;
-    yydebug = 1;
-
-    FILE *traza = fopen("parser_debug.log", "w");
-    if (traza == NULL) {
-        fprintf(stderr, "No se pudo crear parser_debug.log\n");
-        fclose(archivo);
-        return 1;
-    }
-
-#ifdef _WIN32
-    int stderr_copia = _dup(_fileno(stderr));
-    if (stderr_copia < 0 || _dup2(_fileno(traza), _fileno(stderr)) < 0) {
-        fprintf(stderr, "No se pudo redirigir la traza del parser\n");
-        fclose(traza);
-        fclose(archivo);
-        return 1;
-    }
-#else
-    int stderr_copia = dup(fileno(stderr));
-    if (stderr_copia < 0 || dup2(fileno(traza), fileno(stderr)) < 0) {
-        fprintf(stderr, "No se pudo redirigir la traza del parser\n");
-        fclose(traza);
-        fclose(archivo);
-        return 1;
-    }
-#endif
+    yydebug = 0;
 
     int resultado_sintactico = yyparse();
-    fflush(stderr);
-#ifdef _WIN32
-    _dup2(stderr_copia, _fileno(stderr));
-    _close(stderr_copia);
-#else
-    dup2(stderr_copia, fileno(stderr));
-    close(stderr_copia);
-#endif
-    fclose(traza);
-
-    imprimir_traza("parser_debug.log");
     informar_errores_sintacticos();
     int errores_lexicos = lexer_hubo_errores();
     int errores_informados = informar_errores();
@@ -2516,7 +2464,6 @@ int main(int argc, char *argv[]) {
         free(polaca);
         return 1;
     }
-    printf("Compilacion completa sin errores\n");
     free(errores);
     free(polaca);
     return 0;

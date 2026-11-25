@@ -35,14 +35,14 @@
 /* "%code requires" blocks.  */
 
 /* Line 1676 of yacc.c  */
-#line 215 "src/parser.y"
+#line 199 "src\\parser.y"
 
 #include "intermedio_types.h"
 
 
 
 /* Line 1676 of yacc.c  */
-#line 46 "src/parser.tab.h"
+#line 46 "src\\parser.tab.h"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -95,7 +95,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 219 "src/parser.y"
+#line 203 "src\\parser.y"
 
     int cantidad;
     int tipo;
@@ -108,7 +108,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 112 "src/parser.tab.h"
+#line 112 "src\\parser.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

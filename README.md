@@ -41,29 +41,29 @@ Compilar el compilador:
 
 ```powershell
 gcc -std=c99 -Wall -Wextra -pedantic `
-  -o out\betac.exe `
+  -o out\beta.exe `
   src\parser.tab.c src\lexer.c src\lexer_tables.c src\assembler.c
 ```
 
 Ejecutá un programa Beta:
 
 ```powershell
-.\out\betac.exe tests\correctos\01_expresiones_aritmeticas.beta
+.\out\beta.exe tests\correctos\01_expresiones_aritmeticas.beta
 ```
 
 Para probar los demás casos correctos:
 
 ```powershell
-.\out\betac.exe tests\correctos\02_si_dentro_de_para.beta
-.\out\betac.exe tests\correctos\03_para.beta
+.\out\beta.exe tests\correctos\02_si_dentro_de_para.beta
+.\out\beta.exe tests\correctos\03_para.beta
 ```
 
 Los casos de `tests\incorrectos\` deben terminar con error:
 
 ```powershell
-.\out\betac.exe tests\incorrectos\01_caracter_invalido.beta
-.\out\betac.exe tests\incorrectos\02_parametros_funcion.beta
-.\out\betac.exe tests\incorrectos\03_sintactico.beta
+.\out\beta.exe tests\incorrectos\01_caracter_invalido.beta
+.\out\beta.exe tests\incorrectos\02_parametros_funcion.beta
+.\out\beta.exe tests\incorrectos\03_sintactico.beta
 ```
 
 ## Dependencias

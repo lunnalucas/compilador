@@ -12,13 +12,6 @@
 #include <sys/stat.h>
 #define MKDIR(d) mkdir(d, 0755)
 #endif
-#ifdef _WIN32
-#include <io.h>
-extern int _fileno(FILE *);
-#else
-#include <unistd.h>
-#endif
-
 typedef struct {
     int codigo;
     int linea;
@@ -178,15 +171,6 @@ static void informar_errores_sintacticos(void) {
 
 static int errores_sintacticos(void) {
     return cantidad_errores != 0 || error_memoria;
-}
-
-static void imprimir_traza(const char *nombre) {
-    FILE *archivo = fopen(nombre, "r");
-    char linea[1024];
-    if (archivo == NULL) return;
-    while (fgets(linea, sizeof(linea), archivo) != NULL)
-        fputs(linea, stdout);
-    fclose(archivo);
 }
 
 static void error_cantidad(const char *nombre, int cantidad) {
@@ -621,45 +605,9 @@ int main(int argc, char *argv[]) {
     polaca = NULL;
     cantidad_simbolos = 0;
     cantidad_funciones = 0;
-    yydebug = 1;
-
-    FILE *traza = fopen("parser_debug.log", "w");
-    if (traza == NULL) {
-        fprintf(stderr, "No se pudo crear parser_debug.log\n");
-        fclose(archivo);
-        return 1;
-    }
-
-#ifdef _WIN32
-    int stderr_copia = _dup(_fileno(stderr));
-    if (stderr_copia < 0 || _dup2(_fileno(traza), _fileno(stderr)) < 0) {
-        fprintf(stderr, "No se pudo redirigir la traza del parser\n");
-        fclose(traza);
-        fclose(archivo);
-        return 1;
-    }
-#else
-    int stderr_copia = dup(fileno(stderr));
-    if (stderr_copia < 0 || dup2(fileno(traza), fileno(stderr)) < 0) {
-        fprintf(stderr, "No se pudo redirigir la traza del parser\n");
-        fclose(traza);
-        fclose(archivo);
-        return 1;
-    }
-#endif
+    yydebug = 0;
 
     int resultado_sintactico = yyparse();
-    fflush(stderr);
-#ifdef _WIN32
-    _dup2(stderr_copia, _fileno(stderr));
-    _close(stderr_copia);
-#else
-    dup2(stderr_copia, fileno(stderr));
-    close(stderr_copia);
-#endif
-    fclose(traza);
-
-    imprimir_traza("parser_debug.log");
     informar_errores_sintacticos();
     int errores_lexicos = lexer_hubo_errores();
     int errores_informados = informar_errores();
@@ -680,7 +628,6 @@ int main(int argc, char *argv[]) {
         free(polaca);
         return 1;
     }
-    printf("Compilacion completa sin errores\n");
     free(errores);
     free(polaca);
     return 0;

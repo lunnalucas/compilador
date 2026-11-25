@@ -1,4 +1,4 @@
 inicio {
     entero val@or = 7;
-    imprimir(valor)
+    imprimir(valor);
 }

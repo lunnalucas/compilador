@@ -588,8 +588,6 @@ static int ejecutar_codigo(const char *archivo_assembler) {
              archivo_assembler, archivo_objeto, archivo_objeto,
              archivo_ejecutable, archivo_ejecutable);
 #endif
-    printf("Ejecutando programa generado:\n");
-    fflush(stdout);
     if (system(comando) != 0) {
         fprintf(stderr, "No se pudo ensamblar, enlazar o ejecutar el programa generado\n");
         return 0;
@@ -886,22 +884,8 @@ int assembler_generar(const char *archivo_polaca,
         fprintf(stderr, "No se pudieron cerrar los archivos assembler/traza\n");
         correcto = 0;
     }
-    if (correcto) {
-        FILE *archivo = fopen(archivo_traza, "r");
-        char linea[1024];
-        if (archivo == NULL) {
-            fprintf(stderr, "No se pudo leer la traza assembler\n");
-            correcto = 0;
-        } else {
-            while (fgets(linea, sizeof(linea), archivo) != NULL)
-                fputs(linea, stdout);
-            fclose(archivo);
-        }
-    }
     if (correcto && !ejecutar_codigo(archivo_assembler))
         correcto = 0;
-    if (correcto)
-        printf("Codigo NASM generado en %s\n", archivo_assembler);
     liberar_estado();
     return correcto ? 0 : 1;
 }
