@@ -14,9 +14,9 @@
 
 El objetivo de este módulo es recibir el código intermedio (representado como un arreglo lineal de estructuras de Polaca Inversa) en conjunto con la Tabla de Símbolos, y traducirlo de manera estricta y sistemática a código fuente en lenguaje Assembler x86 (arquitectura de 32 bits, formato NASM). Este código generado debe ser completamente funcional, compatible con las restricciones estáticas del lenguaje Beta, y apto para ser ensamblado y linkeado mediante GCC en entornos Windows para su ejecución final.
 
-Es muy importante aclarar que el compilador debe generar el codigo assembler, ejecutarlo por nasm y mostrar la salida del programa beta que se ejecute.
+Es muy importante aclarar que el compilador debe generar el código assembler, ensamblarlo con NASM, linkearlo con GCC, ejecutarlo y mostrar en pantalla **únicamente** la salida del programa Beta ejecutado (cuando compila sin errores) o el mensaje de error correspondiente (cuando ocurre un error).
 
-Generar solo el codigo assembler sin ejecutarlo y mostrar la salida del programa es un error.
+Generar solo el código assembler sin ejecutarlo es un error, y mostrar trazas de depuración, logs internos o mensajes intermedios del compilador en la consola también es un error.
 
 ## 2. Alcance
 
@@ -44,7 +44,7 @@ Este módulo abarca estrictamente la etapa final de generación de código del c
 
 *   **Salidas:**
     *   **Archivo de Código Assembler (`.asm`):** Archivo de texto fuente (`assembler.asm`) con las instrucciones en lenguaje ensamblador (x86, 32 bits, formato NASM) listo para ser compilado y ejecutado.
-    *   **Archivo de Trazabilidad / Log de Traducción:** Archivo generado durante la ejecución que registra el paso a paso del consumo de la polaca y su conversión a Assembler, el cual es volcado en pantalla al finalizar el proceso.
+    *   **Archivo de Trazabilidad / Log de Traducción:** Archivo generado durante la ejecución (en la carpeta de salida) que registra el paso a paso del consumo de la polaca y su conversión a Assembler. Debe guardarse en archivo, pero **no debe volcarse en pantalla**.
 
 ## 4. Reglas y decisiones de diseño
 
@@ -214,6 +214,10 @@ El lenguaje Beta permite definir funciones que reciben estrictamente **1 o 2 par
   1. Se evalúan y se apilan ordenadamente los 1 o 2 parámetros que exige la función.
   2. Se ejecuta la instrucción de llamada (`CALL`) hacia la rutina correspondiente.
   3. Una vez finalizada la llamada, el resultado se toma del registro `EAX` para asignarlo a la variable de destino que indicaba la polaca, y se limpia la pila de los parámetros utilizados.
+
+### 4.7. Control de salida por consola y desactivación de depuración
+
+El modo debug del analizador sintáctico (`yydebug` / `YYDEBUG`) debe desactivarse para que no se impriman trazas de estados, tokens, desplazamientos o reducciones en consola. Las trazas internas, logs y mensajes intermedios del compilador deben guardarse en archivo (si corresponde) y no mostrarse en pantalla; en consola solo debe verse la salida del programa Beta ejecutado (si compila sin errores) o el mensaje de error (si falla).
      
 ## 5. Criterios de aceptación
 Para considerar que el módulo de Generación de Código Assembler es correcto y funcional, se deben cumplir los siguientes criterios de validación:
@@ -222,7 +226,7 @@ Para considerar que el módulo de Generación de Código Assembler es correcto y
 
 *   **2. Generación sintáctica correcta del `.asm`:** El archivo de salida generado debe cumplir estrictamente con la sintaxis de NASM para x86 (32 bits), permitiendo su ensamblaje sin errores ni advertencias fatales mediante herramientas estándar (NASM/GCC en MinGW).
   
-*   **3. Registro de traza (Log):** El módulo debe generar correctamente el archivo de traza que documenta el paso a paso de la traducción y mostrarlo de forma legible en la consola al finalizar la ejecución exitosa del proceso.
+*   **3. Registro de traza (Log)sin ruido en consola:** El módulo debe generar correctamente el archivo de traza en disco si corresponde que documenta el paso a paso de la traducción pero **sin** volcar trazas de Bison, logs de traducción ni mensajes informativos del compilador en pantalla; en consola solo debe verse la salida del programa Beta o el error.
 
 *   **4. Respeto de tipos y tamaños (Tabla de Símbolos):** El código generado debe asignar correctamente el espacio estático según el tipo (32 bits para enteros y 64 bits para reales), aplicando las inicializaciones por defecto estipuladas.
 
