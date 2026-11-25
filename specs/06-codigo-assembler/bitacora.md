@@ -31,3 +31,12 @@
 - **Estado al cierre de la iteración:**
   - Pipeline de compilación 100% funcional (Bison → Parser C → NASM → GCC Linker → Ejecutable).
   - Repositorio limpio, sincronizado y listo para la defensa del proyecto.
+
+
+**Iteración 3 — Mostrar por pantalla solo la salida del programa**
+
+Se agrego en la especificacion que el compilador solo debe mostrar la salida de un programa beta si es compilado correctamente, en caso contrario se debe informar el error.
+
+En el estado anterior se mostraba ademas el debug del parser y la traza de assembler que mostraba el proceso de traduccion de la polaca a assembler.
+
+- **Estado al cierre de la iteración:** Compilador funcionando correctamente sin informar por consola debug del parser y traduccion de polaca a assembler.
